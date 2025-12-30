@@ -1,0 +1,161 @@
+# XGO コーディングガイドライン（基本）
+
+> 目的：バイブコーディングでも破綻しにくい「分離」「影響範囲の最小化」「後付け演出」を最優先にする。
+> ※ XGOルール本文は別ドキュメントに置く（ここでは扱わない）。
+
+---
+
+## 1. 設計原則（必須）
+
+### 1-1. レイヤー分離
+
+以下を**混ぜない**。
+
+* **Domain**：盤面・判定などの純粋ロジック（UI/演出を知らない）
+* **State**：ゲーム進行・履歴・派生情報（Domainを使って状態を更新）
+* **UI (Components/Presentation)**：描画と入力（判断しない）
+* **Effects**：意味イベントに反応して演出（ロジックを書かない）
+
+### 1-2. 依存方向（矢印固定）
+
+* `domain/` → 依存なし（孤立）
+* `state/` → `domain/` に依存OK
+* `components/` → `state/selectors` か ViewModel だけを参照（可能なら domain/state 直参照しない）
+* `effects/` → `events/` と `theme/` と必要最小限のUI資産に依存OK
+
+> UIやEffectsからDomainの「判定関数」を直接叩き始めたら、だいたい設計崩壊の第一歩。
+
+---
+
+## 2. 推奨ディレクトリ構造
+
+```
+src/
+├─ domain/          # 純粋ロジック
+├─ state/           # 進行・履歴・派生情報（selectors）
+├─ events/          # 意味イベント（型/バス）
+├─ components/      # 受動的UI（フォルダ単位）
+├─ effects/         # 演出（イベント中心）
+├─ theme/           # トークン（色/モーション/音など）
+└─ app/             # 配線（画面/DI/初期化）
+
+docs/
+├─ ARCHITECTURE.md
+├─ CODING_GUIDELINES.md  # ←この文書
+├─ EVENTS.md
+└─ SCRAP.md
+```
+
+---
+
+## 3. ファイル分割ルール
+
+### 3-1. コンポーネントは「フォルダで閉じる」
+
+`components/X/` 配下に関係ファイルをまとめる。
+
+推奨：
+
+* `X.tsx`：組み立て（判断しない）
+* `X.styles.ts`：スタイル（トークン参照）
+* `X.anim.ts`：アニメ定義（条件分岐を持たない）
+* `X.types.ts`：Props/ViewModel型
+* `index.ts`：外部公開（re-exportのみ）
+
+外部からは **`components/X` の `index.ts` 経由のみ** で import させる。
+
+### 3-2. Effectsは「出来事（イベント）中心」で分割
+
+* 「Stoneの演出」ではなく「`STONE_PLACED` の演出」
+* 複数コンポーネントにまたがる、オン/オフしたい、差し替えたい → `effects/`
+
+例：
+
+```
+effects/
+├─ stone/placed.effect.ts
+├─ stone/captured.effect.ts
+└─ game/won.effect.ts
+```
+
+### 3-3. “常に同時に変わる”ものは無理に割らない
+
+* 毎回セットで編集される2ファイルは、割るほど探索コストが増える。
+* 逆に「頻繁に差し替える/実験する」ものは積極的に分離する。
+
+---
+
+## 4. 意味イベント（イベント駆動）のルール
+
+### 4-1. 目的
+
+演出を後付けしてもルールが壊れないように、UIとEffectsは「出来事」にだけ反応する。
+
+### 4-2. 設計
+
+* `events/` に **discriminated union** でイベント型を定義
+* `emit(event)` と `subscribe(type, handler)` を提供
+* Effectsはイベントを購読して演出を再生するだけ
+
+> Domain/Stateは「何が起きたか」を発火する。どう見せるかはUI/Effectsが決める。
+
+---
+
+## 5. 命名・型・データ表現
+
+### 5-1. 命名
+
+* boolean：`isXxx` / `hasXxx` / `canXxx`
+* 座標：`Point` を定義し **統一**（例：`{ x: number; y: number }`）
+* プレイヤー/陣営：`Player` を union/enum で統一
+
+### 5-2. 型の置き場
+
+* `domain/types.ts`：Domainで使う基礎型（UI非依存）
+* `components/X/X.types.ts`：UIのProps/ViewModel
+
+---
+
+## 6. 禁止事項（守らないと未来が死ぬ）
+
+* `domain/` に UIフレームワーク依存（React/DOM/Canvas等）を書かない
+* `components/` でルール判定や状態更新をしない（store直参照・勝敗判定など）
+* `effects/` でルール判定をしない（イベント→演出のみ）
+* 外部から `components/X/*` を直 import しない（必ず `components/X` 経由）
+
+---
+
+## 7. 先頭コメント（重要ファイルのみ推奨）
+
+対象：
+
+* 全てのコードファイル（HTML/CSS/JS/TS など）は**冒頭に日本語で1行の概要コメント**を書く
+* 特に `domain/` の主要ファイル、`events/`、`state/` 中核（gameState/selectors）は必須
+
+テンプレ：
+
+```ts
+/**
+ * このファイルが担う役割を日本語で1行で書く
+ */
+```
+
+※ 関数一覧の完全な目次は古くなりやすいので避ける。
+
+---
+
+## 8. バイブコーディング運用ルール（実務的なやつ）
+
+* 公開APIは `index.ts` に集約し、**触る面積を狭くする**
+* 大改造は「フォルダ単位」でやる（1コンポーネント＝1島）
+* 実験は `SCRAP.md` に書いてから触る（コードに迷いを混ぜない）
+* 迷ったら「これは部品（components）か出来事（effects）か？」で置き場を決める
+
+---
+
+## 9. 完了条件（DoD）
+
+* レイヤー分離と依存方向が守られている
+* `index.ts` 経由で外部公開点が整理されている
+* イベント定義があり、Effectsを追加する入口がある
+* 重要ファイルに概要コメントがあり、初見で責務が読める
