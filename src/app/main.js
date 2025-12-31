@@ -1,6 +1,12 @@
 // XGOアプリの画面配線とイベントハンドラをまとめたエントリポイント
 import { createBoardView } from "../components/board.js";
-import { CellState, Player } from "../domain/types.js";
+import { createStatusBar } from "../components/statusBar.js";
+import { createSetupPanel } from "../components/setupPanel.js";
+import { createPlayPanel } from "../components/playPanel.js";
+import { createResultPanel } from "../components/resultPanel.js";
+import { createEventLog } from "../components/eventLog.js";
+import { createLayout } from "../components/layout.js";
+import { applyPalette } from "../theme/palette.js";
 import {
   GameMode,
   createInitialState,
@@ -18,46 +24,103 @@ import { emit } from "../events/bus.js";
 import { Events } from "../events/types.js";
 
 let state = createInitialState();
+let setupClosed = false;
+let resultClosed = false;
 
-const el = {
-  boardHost: document.getElementById("board-host"),
-  mode: document.getElementById("mode"),
-  player: document.getElementById("player"),
-  playerDot: document.getElementById("player-dot"),
-  capturesBlack: document.getElementById("captures-black"),
-  capturesWhite: document.getElementById("captures-white"),
-  obstaclesToggle: document.getElementById("obstacles-toggle"),
-  obstacleCount: document.getElementById("obstacle-count"),
-  randomizeBtn: document.getElementById("randomize"),
-  startBtn: document.getElementById("start"),
-  startDupBtn: document.getElementById("start-dup"),
-  organizeBtn: document.getElementById("to-organize"),
-  backToPlayBtn: document.getElementById("back-to-play"),
-  scoreBtn: document.getElementById("score"),
-  resetBtns: document.querySelectorAll("[data-reset]"),
-  backToOrganizeBtn: document.getElementById("back-to-organize"),
-  scoreBlack: document.getElementById("score-black"),
-  scoreWhite: document.getElementById("score-white"),
-  winner: document.getElementById("winner"),
-  logList: document.getElementById("event-log"),
-  info: document.getElementById("info"),
-};
+applyPalette();
+
+const appRoot = document.getElementById("app-root");
+const { root, elements: els } = createLayout();
+appRoot.appendChild(root);
 
 const boardView = createBoardView({
   onPlay: handlePlay,
   onMove: handleMove,
 });
-el.boardHost.appendChild(boardView.element);
+els.boardHost.appendChild(boardView.element);
+
+const statusBar = createStatusBar({
+  modeEl: els.mode,
+  playerEl: els.player,
+  playerDotEl: els.playerDot,
+  capturesBlackEl: els.capturesBlack,
+  capturesWhiteEl: els.capturesWhite,
+  infoEl: els.info,
+});
+
+const setupPanel = createSetupPanel(
+  {
+    toggleEl: els.obstaclesToggle,
+    countEl: els.obstacleCount,
+    randomizeBtn: els.randomizeBtn,
+    startButtons: [els.startSetupBtn],
+  },
+  {
+    onToggle: (enabled) => setState(updateObstacleConfig(state, { enabled })),
+    onCountChange: (count) => setState(updateObstacleConfig(state, { count })),
+    onRandomize: () => {
+      setState(randomizeObstacles(state));
+      logEvent(Events.GameStarted, { withObstacles: state.obstaclesEnabled, obstacles: state.obstacles });
+    },
+    onStart: () => {
+      setState(startGame(state));
+      logEvent(Events.GameStarted, { withObstacles: state.obstaclesEnabled, obstacles: state.obstacles });
+    },
+  }
+);
+
+const playPanel = createPlayPanel(
+  {
+    toOrganizeBtn: els.organizeBtn,
+    backToPlayBtn: els.backToPlayBtn,
+    scoreBtn: els.scoreBtn,
+    backToOrganizeBtn: els.backToOrganizeBtn,
+    resetButtons: els.resetBtns,
+  },
+  {
+    onOrganize: () => setState(enterOrganize(state)),
+    onBackToPlay: () => setState({ ...state, mode: GameMode.Play }),
+    onScore: handleScore,
+    onBackToOrganize: () => setState(backToOrganize(state)),
+    onReset: () => {
+      setupClosed = false;
+      setState(resetGame(state));
+      logEvent(Events.GameReset);
+    },
+  }
+);
+
+const resultPanel = createResultPanel({
+  blackEl: els.scoreBlack,
+  whiteEl: els.scoreWhite,
+  winnerEl: els.winner,
+});
+
+const eventLog = createEventLog({ listEl: els.logList });
+
+if (els.closeSetup) {
+  els.closeSetup.addEventListener("click", () => {
+    closeSetupModal();
+  });
+}
+
+if (els.closeResult) {
+  els.closeResult.addEventListener("click", () => {
+    resultClosed = false;
+    setState(backToOrganize(state));
+  });
+}
+
+if (els.resultBackOrganizeBtn) {
+  els.resultBackOrganizeBtn.addEventListener("click", () => {
+    resultClosed = false;
+    setState(backToOrganize(state));
+  });
+}
 
 function logEvent(type, payload) {
   emit(type, payload);
-  if (!el.logList) return;
-  const item = document.createElement("li");
-  item.textContent = `${type}${payload ? ": " + JSON.stringify(payload) : ""}`;
-  el.logList.prepend(item);
-  while (el.logList.children.length > 8) {
-    el.logList.removeChild(el.logList.lastChild);
-  }
+  eventLog.log(type, payload);
 }
 
 function setState(next) {
@@ -66,7 +129,8 @@ function setState(next) {
   if (state.mode !== GameMode.Organize) {
     boardView.clearSelection();
   }
-  boardView.render(state.board, state.mode);
+  if (state.mode !== GameMode.Setup) setupClosed = false;
+  if (state.mode !== GameMode.Result) resultClosed = false;
   render();
   if (prevMode !== state.mode) {
     logEvent(Events.ModeChanged, { from: prevMode, to: state.mode });
@@ -74,56 +138,19 @@ function setState(next) {
 }
 
 function render() {
-  el.mode.textContent = state.mode;
-  el.player.textContent = state.currentPlayer === Player.Black ? "Black" : "White";
-  el.player.dataset.color = state.currentPlayer;
-  if (el.playerDot) {
-    el.playerDot.dataset.color = state.currentPlayer;
+  boardView.render(state.board, state.mode);
+  statusBar.render(state);
+  setupPanel.render(state);
+  playPanel.render(state);
+  resultPanel.render(state.lastScore, state.captures);
+  if (els.setupModal) {
+    const open = state.mode === GameMode.Setup && !setupClosed;
+    els.setupModal.classList.toggle("is-open", open);
   }
-  el.capturesBlack.textContent = state.captures.black;
-  el.capturesWhite.textContent = state.captures.white;
-  el.obstaclesToggle.checked = state.obstaclesEnabled;
-  el.obstacleCount.value = String(state.obstacleCount);
-
-  el.randomizeBtn.disabled = state.mode !== GameMode.Setup;
-  el.startBtn.disabled = state.mode !== GameMode.Setup;
-  if (el.startDupBtn) {
-    el.startDupBtn.disabled = state.mode !== GameMode.Setup;
+  if (els.resultModal) {
+    const open = state.mode === GameMode.Result && !resultClosed;
+    els.resultModal.classList.toggle("is-open", open);
   }
-  el.organizeBtn.disabled = state.mode !== GameMode.Play;
-  el.backToPlayBtn.disabled = state.mode !== GameMode.Organize;
-  el.scoreBtn.disabled = state.mode !== GameMode.Organize;
-  el.backToOrganizeBtn.disabled = state.mode !== GameMode.Result;
-
-  const lastScore = state.lastScore;
-  if (lastScore) {
-    el.scoreBlack.textContent = `${lastScore.blackScore} (地:${lastScore.blackTerritory} + 取:${state.captures.black})`;
-    el.scoreWhite.textContent = `${lastScore.whiteScore} (地:${lastScore.whiteTerritory} + 取:${state.captures.white} + コミ:${lastScore.komi})`;
-    const diff = lastScore.blackScore - lastScore.whiteScore;
-    if (diff === 0) {
-      el.winner.textContent = "Even";
-    } else if (diff > 0) {
-      el.winner.textContent = `Black +${diff}`;
-    } else {
-      el.winner.textContent = `White +${Math.abs(diff)}`;
-    }
-  } else {
-    el.scoreBlack.textContent = "-";
-    el.scoreWhite.textContent = "-";
-    el.winner.textContent = "-";
-  }
-
-  updateInfo();
-}
-
-function updateInfo() {
-  const messages = {
-    [GameMode.Setup]: "Setup: choose obstacle count and start.",
-    [GameMode.Play]: "Play: tap an empty point to place a stone. Obstacles (X) are walls.",
-    [GameMode.Organize]: "Organize: tap a stone to pick it up, then tap an empty spot to move it.",
-    [GameMode.Result]: "Result: review the score, then return to organize or reset.",
-  };
-  el.info.textContent = messages[state.mode] || "";
 }
 
 function handlePlay(point) {
@@ -141,59 +168,31 @@ function handleMove(from, to) {
   logEvent(Events.StoneMoved, { from, to });
 }
 
-el.obstaclesToggle.addEventListener("change", (e) => {
-  const enabled = e.target.checked;
-  setState(updateObstacleConfig(state, { enabled }));
-});
-
-el.obstacleCount.addEventListener("change", (e) => {
-  const raw = Number(e.target.value);
-  const count = Number.isFinite(raw) ? Math.max(0, Math.min(20, raw)) : 0;
-  setState(updateObstacleConfig(state, { count }));
-});
-
-el.randomizeBtn.addEventListener("click", () => {
-  setState(randomizeObstacles(state));
-  logEvent(Events.GameStarted, { withObstacles: state.obstaclesEnabled, obstacles: state.obstacles });
-});
-
-el.startBtn.addEventListener("click", () => {
-  setState(startGame(state));
-  logEvent(Events.GameStarted, { withObstacles: state.obstaclesEnabled, obstacles: state.obstacles });
-});
-
-if (el.startDupBtn) {
-  el.startDupBtn.addEventListener("click", () => {
-    setState(startGame(state));
-    logEvent(Events.GameStarted, { withObstacles: state.obstaclesEnabled, obstacles: state.obstacles });
-  });
-}
-
-el.organizeBtn.addEventListener("click", () => {
-  setState(enterOrganize(state));
-});
-
-el.backToPlayBtn.addEventListener("click", () => {
-  setState({ ...state, mode: GameMode.Play });
-});
-
-el.scoreBtn.addEventListener("click", () => {
+function handleScore() {
   logEvent(Events.ScoreRequested);
   const { next, ok, detail } = requestScore(state);
   if (!ok) return;
   setState(next);
   logEvent(Events.ScoreComputed, detail);
-});
+}
 
-el.backToOrganizeBtn.addEventListener("click", () => {
-  setState(backToOrganize(state));
-});
+function openSetupModal() {
+  setupClosed = false;
+  if (state.mode !== GameMode.Setup) {
+    setState({ ...state, mode: GameMode.Setup });
+  } else {
+    render();
+  }
+}
 
-el.resetBtns.forEach((btn) =>
-  btn.addEventListener("click", () => {
-    setState(resetGame(state));
-    logEvent(Events.GameReset);
-  })
-);
+function closeSetupModal() {
+  setupClosed = true;
+  render();
+}
+
+function closeResultModal() {
+  resultClosed = true;
+  render();
+}
 
 setState(state);

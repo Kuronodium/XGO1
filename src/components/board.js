@@ -1,14 +1,81 @@
 // 盤面の受動的な描画とクリック/移動入力を扱うコンポーネント
-import { CellState, Player } from "../domain/types.js";
+import { CellState } from "../domain/types.js";
 import { GameMode } from "../state/gameState.js";
+import { createStone } from "./stone.js";
+import { createObstacle } from "./obstacle.js";
+import { ensureStyle } from "./styleRegistry.js";
+
+ensureStyle(
+  "board-styles",
+  `
+.board {
+  position: relative;
+  width: 100%;
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(var(--board-size), 1fr);
+  background-image:
+    linear-gradient(to right, var(--color-border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
+  background-size: var(--board-spacing) var(--board-spacing);
+  background-position: var(--board-offset) var(--board-offset);
+  background-repeat: repeat;
+  padding: 0;
+  border-radius: 12px;
+  background-color: transparent;
+}
+
+.cell {
+  position: relative;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1/1;
+  color: var(--color-muted);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.cell:hover .stone {
+  transform: scale(1.04);
+}
+
+.cell:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.cell.obstacle {
+  background: transparent;
+}
+
+.cell.is-selected .stone {
+  box-shadow: 0 0 0 3px var(--color-accent);
+}
+
+.cell.drag-source .stone {
+  opacity: 0.35;
+  filter: saturate(0.7);
+}
+
+.drag-ghost {
+  width: 48px;
+  height: 48px;
+}
+`
+);
 
 export function createBoardView({ onPlay, onMove }) {
   const root = document.createElement("div");
   root.className = "board";
 
-  let currentBoard = [];
-  let currentMode = GameMode.Setup;
-  let selected = null;
+let currentBoard = [];
+let currentMode = GameMode.Setup;
+let selected = null;
+let dragGhost = null;
 
   function pointKey(p) {
     return `${p.x},${p.y}`;
@@ -52,7 +119,11 @@ export function createBoardView({ onPlay, onMove }) {
     currentMode = mode;
     const size = board.length;
     root.innerHTML = "";
+    const spacing = size > 0 ? 100 / size : 100;
+    const offset = size > 0 ? 50 / size : 0;
     root.style.setProperty("--board-size", size);
+    root.style.setProperty("--board-spacing", `${spacing}%`);
+    root.style.setProperty("--board-offset", `${offset}%`);
 
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
@@ -63,16 +134,58 @@ export function createBoardView({ onPlay, onMove }) {
         btn.dataset.y = y;
         btn.setAttribute("aria-label", `(${x + 1}, ${y + 1})`);
 
+        let stoneEl = null;
         if (cell === CellState.Black || cell === CellState.White) {
-          const stone = document.createElement("span");
-          stone.className = `stone ${cell}`;
-          btn.appendChild(stone);
+          stoneEl = createStone(cell);
+          btn.appendChild(stoneEl);
           if (selected && selected.x === x && selected.y === y) {
             btn.classList.add("is-selected");
           }
+          if (currentMode === GameMode.Organize) {
+            btn.draggable = true;
+            btn.addEventListener("dragstart", (e) => {
+              btn.classList.add("drag-source");
+              e.dataTransfer?.setData("text/plain", pointKey({ x, y }));
+              if (stoneEl) {
+                dragGhost = stoneEl.cloneNode(true);
+                dragGhost.style.position = "fixed";
+                dragGhost.style.top = "-100px";
+                dragGhost.style.left = "-100px";
+                dragGhost.style.width = "48px";
+                dragGhost.style.height = "48px";
+                dragGhost.style.opacity = "0.95";
+                dragGhost.style.pointerEvents = "none";
+                document.body.appendChild(dragGhost);
+                e.dataTransfer?.setDragImage(dragGhost, 24, 24);
+              }
+            });
+            btn.addEventListener("dragend", () => {
+              btn.classList.remove("drag-source");
+              if (dragGhost) {
+                dragGhost.remove();
+                dragGhost = null;
+              }
+            });
+          }
         } else if (cell === CellState.Obstacle) {
           btn.classList.add("obstacle");
-          btn.textContent = "X";
+          btn.appendChild(createObstacle());
+        }
+
+        if (currentMode === GameMode.Organize) {
+          btn.addEventListener("dragover", (e) => {
+            // Allow drop only on empty cell during organize.
+            if (currentBoard[y][x] === CellState.Empty) {
+              e.preventDefault();
+            }
+          });
+          btn.addEventListener("drop", (e) => {
+            const data = e.dataTransfer?.getData("text/plain");
+            if (!data) return;
+            const [sx, sy] = data.split(",").map(Number);
+            if (Number.isNaN(sx) || Number.isNaN(sy)) return;
+            onMove?.({ x: sx, y: sy }, { x, y });
+          });
         }
 
         btn.addEventListener("click", () => handleClick({ x, y }));
