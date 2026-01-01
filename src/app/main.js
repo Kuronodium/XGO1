@@ -44,12 +44,11 @@ const boardView = createBoardView({
 els.boardHost.appendChild(boardView.element);
 
 const statusBar = createStatusBar({
-  modeEl: els.mode,
-  playerEl: els.player,
-  playerDotEl: els.playerDot,
-  capturesBlackEl: els.capturesBlack,
-  capturesWhiteEl: els.capturesWhite,
-  infoEl: els.info,
+  turnCountEl: els.turnCount,
+  topbarBlackEl: els.topbarBlack,
+  topbarWhiteEl: els.topbarWhite,
+  sideBlackEl: els.sideBlack,
+  sideWhiteEl: els.sideWhite,
 });
 
 const setupPanel = createSetupPanel(
@@ -98,12 +97,23 @@ const resultPanel = createResultPanel({
   winnerEl: els.winner,
 });
 
-const captureTray = createCaptureTray({
-  blackTrayEl: els.captureBlackTray,
-  whiteTrayEl: els.captureWhiteTray,
-  blackCountEl: els.capturesBlack,
-  whiteCountEl: els.capturesWhite,
-});
+const captureTopbar = createCaptureTray(
+  {
+    blackTrayEl: els.topbarBlackChips,
+    whiteTrayEl: els.topbarWhiteChips,
+    blackCountEl: els.capturesBlack,
+    whiteCountEl: els.capturesWhite,
+  },
+  { maxStones: 12, stoneSize: "small" }
+);
+
+const captureSides = createCaptureTray(
+  {
+    blackTrayEl: els.captureBlackTray,
+    whiteTrayEl: els.captureWhiteTray,
+  },
+  { maxStones: 18, stoneSize: "small" }
+);
 
 const eventLog = createEventLog({ listEl: els.logList });
 
@@ -166,7 +176,8 @@ function render() {
   setupPanel.render(state);
   playPanel.render(state);
   resultPanel.render(state.lastScore, state.captures);
-  captureTray.render(state.captures);
+  captureTopbar.render(state.captures);
+  captureSides.render(state.captures);
   if (els.setupModal) {
     const open = state.mode === GameMode.Setup && !setupClosed;
     els.setupModal.classList.toggle("is-open", open);

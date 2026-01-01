@@ -1,4 +1,4 @@
-// アプリ全体のHTML骨格（盤面カード、サイドカード群）を生成するコンポーネント
+// アプリ全体のHTML骨格（トップバー・盤面・手番サイド）を生成するコンポーネント
 import { ensureStyle } from "./styleRegistry.js";
 
 ensureStyle(
@@ -7,68 +7,134 @@ ensureStyle(
 .app-shell {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 24px;
-}
-
-.layout {
+  padding: 32px 24px;
   display: grid;
-  grid-template-columns: 1.2fr 0.9fr;
-  gap: 16px;
-  margin-top: 8px;
+  gap: 22px;
 }
 
-.card {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: var(--shadow-elevated);
-}
-
-/* board-card stays flexible for board/info stacking */
-.board-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.board-shell {
-  width: 100%;
-  aspect-ratio: 1/1;
-  border-radius: 14px;
-  border: 1px solid var(--color-border);
-  padding: 12px;
-  background: var(--color-board-cell);
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
-}
-
-.board-area {
+.topbar {
   display: grid;
-  grid-template-columns: 88px 1fr 88px;
-  gap: 12px;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  gap: 20px;
 }
 
-.capture-side {
+.score-block {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
   align-items: center;
-  color: var(--color-muted);
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--color-score-bg);
 }
 
-.capture-label {
-  font-size: 0.85rem;
-  text-transform: uppercase;
+.score-block.is-active {
+  background: var(--color-score-bg-active);
+  box-shadow: 0 0 20px var(--color-score-glow);
+}
+
+.chips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.chips .stone.small {
+  width: 12px;
+  height: 12px;
+}
+
+.score-num {
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: 0.08em;
 }
 
-.capture-count {
-  font-size: 1.2rem;
-  font-weight: 700;
+.turn-center {
+  font-size: 18px;
+  text-align: center;
+  letter-spacing: 0.2em;
+  color: var(--color-muted);
+}
+
+.turn-label {
+  text-transform: uppercase;
+}
+
+.turn-center .turn-count {
   color: var(--color-text);
+  font-weight: 600;
+  margin-left: 6px;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr minmax(320px, 640px) 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+.side-panel {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  padding: 24px;
+  border-radius: 20px;
+  min-height: 320px;
+  background: transparent;
+}
+
+.side-panel.is-active {
+  background: var(--color-side-active-bg);
+  box-shadow: inset 0 0 40px var(--color-side-active-glow);
+}
+
+.turn-badge {
+  background: var(--color-turn-badge-bg);
+  color: var(--color-turn-badge-text);
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 8px;
+  letter-spacing: 0.08em;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.side-panel.is-active .turn-badge {
+  opacity: 1;
+}
+
+.big-stone {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--color-stone-white-highlight),
+    var(--color-stone-white-base)
+  );
+  box-shadow: 0 10px 24px var(--color-stone-shadow-outer), inset 0 2px 8px var(--color-stone-shadow-inner);
+}
+
+.big-stone.black {
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--color-stone-black-highlight),
+    var(--color-stone-black-base)
+  );
+  border: 2px solid var(--color-stone-black-outline);
+  box-shadow: 0 10px 24px var(--color-stone-black-shadow), inset 0 2px 6px var(--color-stone-black-inner);
+}
+
+.board-shell {
+  padding: 22px;
+  border-radius: 22px;
+  background: var(--color-board-cell);
+  box-shadow: var(--shadow-elevated);
+}
+
+.board-host {
+  width: 100%;
 }
 
 .capture-tray {
@@ -76,10 +142,6 @@ ensureStyle(
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
-  padding: 8px;
-  border-radius: 10px;
-  border: 1px solid var(--color-border);
-  background: var(--color-panel-shine);
   min-height: 64px;
 }
 
@@ -88,147 +150,57 @@ ensureStyle(
   color: var(--color-muted);
 }
 
-.topline {
+.bottom-controls {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  gap: 16px;
+  justify-content: center;
   flex-wrap: wrap;
 }
 
-.badge {
+.action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--color-accent-glow);
-  color: var(--color-accent);
+  gap: 10px;
+  padding: 12px 22px;
+  border-radius: 12px;
+  background: var(--color-button-bg);
+  border: 1px solid var(--color-button-border);
+  color: var(--color-text);
+  font-size: 16px;
   font-weight: 600;
-  border: 1px solid var(--color-accent);
+  letter-spacing: 0.04em;
 }
 
-.turn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: var(--color-topline-bg);
+.action-btn:hover {
+  background: var(--color-button-hover-bg);
 }
 
-.dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--color-text);
-  box-shadow: 0 0 0 2px var(--color-panel-shine);
+.action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
-.dot[data-color="black"] {
-  background: var(--color-stone-black-base);
-}
-
-.dot[data-color="white"] {
-  background: var(--color-stone-white-highlight);
-  border: 1px solid var(--color-border);
-}
-
-.captures {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  font-size: 0.9rem;
-}
-
-.pill.dark {
-  background: var(--color-pill-dark-bg);
-  color: var(--color-text);
-}
-
-.pill.light {
-  background: var(--color-pill-light-bg);
-  color: var(--color-text);
-}
-
-.info {
-  color: var(--color-muted);
-  font-size: 0.95rem;
-  padding: 8px 12px;
-  border-radius: 10px;
-  background: var(--color-info-bg);
-  border: 1px solid var(--color-border);
-}
-
-.side {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.card-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.hint {
-  font-size: 0.85rem;
-  color: var(--color-muted);
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 8px 0;
-}
-
-input[type="number"] {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-text);
-  padding: 6px 10px;
-  border-radius: 8px;
-  width: 90px;
-}
-
-input[type="checkbox"] {
+.checkbox {
   width: 18px;
   height: 18px;
-  accent-color: var(--color-accent);
+  border-radius: 4px;
+  border: 1px solid var(--color-button-border-strong);
+  background: var(--color-checkbox-bg);
 }
 
 .buttons {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 6px;
-}
-
-.buttons.two-col > button {
-  flex: 1 1 calc(50% - 4px);
-}
-
-.buttons .wide {
-  flex: 1 1 100%;
+  margin-top: 12px;
 }
 
 button {
   background: var(--color-button-bg);
   color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 10px 12px;
+  border: 1px solid var(--color-button-border);
+  border-radius: 12px;
+  padding: 10px 16px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 140ms ease, background 140ms ease;
@@ -245,10 +217,10 @@ button:disabled {
 }
 
 button.primary {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
-  color: var(--color-primary-on-accent);
+  background: var(--color-primary-button-bg);
+  color: var(--color-primary-button-text);
   border: none;
-  box-shadow: var(--shadow-accent);
+  box-shadow: var(--shadow-primary);
 }
 
 button.ghost {
@@ -256,10 +228,43 @@ button.ghost {
   border-color: var(--color-ghost-border);
 }
 
-.note {
-  color: var(--color-muted);
-  font-size: 0.9rem;
-  margin-top: 8px;
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-overlay);
+  z-index: 999;
+  padding: 16px;
+}
+
+.modal.is-open {
+  display: flex;
+}
+
+.modal-panel {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-elevated);
+  border-radius: 14px;
+  padding: 16px;
+  width: min(520px, 100%);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
 }
 
 .score-row {
@@ -295,50 +300,12 @@ button.ghost {
 
 .stone-label.black::before {
   background: var(--color-stone-black-base);
+  border: 1px solid var(--color-stone-black-outline-soft);
 }
 
 .stone-label.white::before {
   background: var(--color-stone-white-highlight);
   border: 1px solid var(--color-border);
-}
-
-.modal {
-  position: fixed;
-  inset: 0;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 999;
-  padding: 16px;
-}
-
-.modal.is-open {
-  display: flex;
-}
-
-.modal-panel {
-  background: var(--color-card);
-  border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-elevated);
-  border-radius: 14px;
-  padding: 16px;
-  width: min(520px, 100%);
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 12px;
 }
 
 .segmented {
@@ -354,31 +321,44 @@ button.ghost {
 }
 
 .segmented button.is-active {
-  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
-  color: var(--color-primary-on-accent);
+  background: var(--color-primary-button-bg);
+  color: var(--color-primary-button-text);
   border: none;
-  box-shadow: var(--shadow-accent);
+  box-shadow: var(--shadow-primary);
+}
+
+.setup-panel {
+  text-align: center;
+}
+
+.setup-panel .modal-header {
+  justify-content: center;
+}
+
+.setup-panel .buttons {
+  justify-content: center;
+}
+
+.setup-panel .start-button {
+  font-size: 18px;
+  padding: 14px 32px;
+  min-width: 180px;
 }
 
 @media (max-width: 980px) {
-  .layout {
+  .main-grid {
     grid-template-columns: 1fr;
   }
 
-  .hero {
-    flex-direction: column;
-    align-items: flex-start;
+  .side-panel {
+    min-height: auto;
   }
 }
 
 @media (max-width: 640px) {
-  .buttons.two-col > button {
-    flex: 1 1 100%;
-  }
-
-  .topline {
-    flex-direction: column;
-    align-items: flex-start;
+  .topbar {
+    grid-template-columns: 1fr;
+    text-align: center;
   }
 }
 `
@@ -388,63 +368,52 @@ export function createLayout() {
   const template = document.createElement("template");
   template.innerHTML = `
     <div class="app-shell">
-      <main class="layout">
-        <section class="card board-card">
-          <div class="topline">
-            <div class="badge" id="mode">SETUP</div>
-            <div class="turn">
-              <span class="dot" id="player-dot"></span>
-              <span class="label">手番:</span>
-              <span id="player" data-color="black">Black</span>
-            </div>
-          </div>
+      <header class="topbar">
+        <div class="score-block" id="topbar-black">
+          <div class="chips" id="topbar-black-chips"></div>
+          <div class="score-num" id="captures-black">0</div>
+        </div>
+        <div class="turn-center">
+          <span class="turn-label">TURN</span>
+          <span class="turn-count" id="turn-count">1</span>
+        </div>
+        <div class="score-block" id="topbar-white">
+          <div class="score-num" id="captures-white">0</div>
+          <div class="chips" id="topbar-white-chips"></div>
+        </div>
+      </header>
 
-          <div class="board-area">
-            <div class="capture-side">
-              <div class="capture-label">Black</div>
-              <div class="capture-count" id="captures-black">0</div>
-              <div class="capture-tray" id="capture-black-tray"></div>
-            </div>
-            <div id="board-host" class="board-shell"></div>
-            <div class="capture-side">
-              <div class="capture-label">White</div>
-              <div class="capture-count" id="captures-white">0</div>
-              <div class="capture-tray" id="capture-white-tray"></div>
-            </div>
-          </div>
-          <p class="info" id="info">Setup: choose obstacle count and start.</p>
+      <main class="main-grid">
+        <aside class="side-panel" id="side-white">
+          <div class="turn-badge">TURN</div>
+          <div class="big-stone"></div>
+          <div class="capture-tray" id="capture-white-tray"></div>
+        </aside>
+
+        <section class="board-shell">
+          <div id="board-host" class="board-host"></div>
         </section>
 
-        <section class="side">
-          <div class="card">
-            <div class="card-head">
-              <h2>Play / Organize</h2>
-              <span class="hint">対局中の操作</span>
-            </div>
-            <div class="buttons two-col">
-              <button id="to-organize">整理モードへ</button>
-              <button id="back-to-play">対局に戻る</button>
-              <button id="score" class="primary">判定</button>
-              <button id="back-to-organize">整理に戻る</button>
-              <button data-reset class="ghost wide">最初から</button>
-            </div>
-          </div>
+        <aside class="side-panel" id="side-black">
+          <div class="turn-badge">TURN</div>
+          <div class="big-stone black"></div>
+          <div class="capture-tray" id="capture-black-tray"></div>
+        </aside>
+      </main>
 
-          <div class="card">
-            <div class="card-head">
-              <h2>Event Log</h2>
-              <span class="hint">最新8件</span>
-            </div>
-            <button id="open-event-log">Event Logを開く</button>
-          </div>
-      </section>
-    </main>
+      <div class="bottom-controls">
+        <button class="action-btn" id="open-event-log"><span class="checkbox"></span>Show Log</button>
+        <button class="action-btn" id="to-organize">Finish Game</button>
+        <button class="action-btn" id="score">Judge</button>
+        <button class="action-btn" id="back-to-organize">Back</button>
+        <button class="action-btn" id="back-to-play">Resume</button>
+        <button class="action-btn" data-reset>Reset</button>
+      </div>
 
     <div class="modal" id="setup-modal">
-      <div class="modal-panel">
+      <div class="modal-panel setup-panel">
         <div class="modal-header">
           <h2>Setup</h2>
-          <button class="ghost" id="close-setup">閉じる</button>
         </div>
         <div class="segmented" id="obstacle-segment">
           <button data-count="0">0</button>
@@ -456,8 +425,7 @@ export function createLayout() {
           <button data-count="6">6</button>
         </div>
         <div class="buttons">
-          <button id="randomize">もう一度ランダム配置</button>
-          <button class="primary" id="start-setup">Start</button>
+          <button class="primary start-button" id="start-setup">Start</button>
         </div>
       </div>
     </div>
@@ -502,11 +470,15 @@ export function createLayout() {
   const root = template.content.firstElementChild;
   const elements = {
     boardHost: root.querySelector("#board-host"),
-    mode: root.querySelector("#mode"),
-    player: root.querySelector("#player"),
-    playerDot: root.querySelector("#player-dot"),
     capturesBlack: root.querySelector("#captures-black"),
     capturesWhite: root.querySelector("#captures-white"),
+    topbarBlack: root.querySelector("#topbar-black"),
+    topbarWhite: root.querySelector("#topbar-white"),
+    topbarBlackChips: root.querySelector("#topbar-black-chips"),
+    topbarWhiteChips: root.querySelector("#topbar-white-chips"),
+    sideBlack: root.querySelector("#side-black"),
+    sideWhite: root.querySelector("#side-white"),
+    turnCount: root.querySelector("#turn-count"),
     captureBlackTray: root.querySelector("#capture-black-tray"),
     captureWhiteTray: root.querySelector("#capture-white-tray"),
     obstacleSegment: root.querySelector("#obstacle-segment"),
@@ -522,7 +494,6 @@ export function createLayout() {
     scoreWhite: root.querySelector("#score-white"),
     winner: root.querySelector("#winner"),
     logList: root.querySelector("#event-log"),
-    info: root.querySelector("#info"),
     setupModal: root.querySelector("#setup-modal"),
     closeSetup: root.querySelector("#close-setup"),
     resultModal: root.querySelector("#result-modal"),

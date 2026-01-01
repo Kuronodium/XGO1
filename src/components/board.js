@@ -15,14 +15,15 @@ ensureStyle(
   gap: 0;
   grid-template-columns: repeat(var(--board-size), 1fr);
   background-image:
-    linear-gradient(to right, var(--color-border) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
+    linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px);
   background-size: var(--board-spacing) var(--board-spacing);
   background-position: var(--board-offset) var(--board-offset);
   background-repeat: repeat;
   padding: 0;
-  border-radius: 12px;
+  border-radius: 18px;
   background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--color-board-outline);
 }
 
 .cell {
@@ -72,10 +73,27 @@ export function createBoardView({ onPlay, onMove }) {
   const root = document.createElement("div");
   root.className = "board";
 
-let currentBoard = [];
-let currentMode = GameMode.Setup;
-let selected = null;
-let dragGhost = null;
+  let currentBoard = [];
+  let currentMode = GameMode.Setup;
+  let selected = null;
+  let dragGhost = null;
+
+  function updateGridMetrics() {
+    const size = currentBoard.length;
+    if (!size) return;
+    const width = root.getBoundingClientRect().width;
+    if (!width) return;
+    const cell = width / size;
+    root.style.setProperty("--board-spacing", `${cell}px`);
+    root.style.setProperty("--board-offset", `${cell / 2}px`);
+  }
+
+  if (typeof ResizeObserver !== "undefined") {
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(updateGridMetrics);
+    });
+    resizeObserver.observe(root);
+  }
 
   function pointKey(p) {
     return `${p.x},${p.y}`;
@@ -193,14 +211,8 @@ let dragGhost = null;
       }
     }
 
-    // Align background grid to actual cell pixels to avoid sub-pixel drift.
-    requestAnimationFrame(() => {
-      const width = root.clientWidth;
-      if (!width || size <= 0) return;
-      const cell = width / size;
-      root.style.setProperty("--board-spacing", `${cell}px`);
-      root.style.setProperty("--board-offset", `${cell / 2}px`);
-    });
+    // Keep grid aligned to resized board.
+    requestAnimationFrame(updateGridMetrics);
   }
 
   return {

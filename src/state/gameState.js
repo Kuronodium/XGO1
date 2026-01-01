@@ -27,16 +27,19 @@ export function createInitialState() {
 }
 
 export function randomObstacles(count, size = BOARD_SIZE) {
-  const spots = new Set();
-  while (spots.size < count) {
-    const x = Math.floor(Math.random() * size);
-    const y = Math.floor(Math.random() * size);
-    spots.add(`${x},${y}`);
+  const inner = [];
+  for (let y = 1; y < size - 1; y++) {
+    for (let x = 1; x < size - 1; x++) {
+      inner.push({ x, y });
+    }
   }
-  return Array.from(spots).map((key) => {
-    const [x, y] = key.split(",").map(Number);
-    return { x, y };
-  });
+
+  for (let i = inner.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [inner[i], inner[j]] = [inner[j], inner[i]];
+  }
+
+  return inner.slice(0, Math.min(count, inner.length));
 }
 
 export function updateObstacleConfig(state, { enabled, count }) {

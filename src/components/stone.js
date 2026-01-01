@@ -23,7 +23,7 @@ ensureStyle(
   background: radial-gradient(circle at 35% 30%, var(--color-stone-black-highlight), var(--color-stone-black-base));
   border: 1px solid var(--color-stone-black-outline);
   box-shadow:
-    inset 0 2px 6px var(--color-stone-shadow-inner),
+    inset 0 2px 6px var(--color-stone-black-inner),
     0 0 0 1px var(--color-stone-black-outline),
     0 4px 10px var(--color-stone-black-shadow);
 }

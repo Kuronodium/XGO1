@@ -8,9 +8,9 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: radial-gradient(circle at 15% 20%, var(--color-accent-glow), transparent 25%),
-    radial-gradient(circle at 80% 0%, var(--color-accent-2-glow), transparent 22%),
-    var(--color-bg);
+  background: radial-gradient(circle at 20% 20%, var(--color-accent-glow), transparent 35%),
+    radial-gradient(circle at 80% 10%, var(--color-accent-2-glow), transparent 40%),
+    linear-gradient(135deg, var(--color-bg-deep), var(--color-bg));
   color: var(--color-text);
   font-family: "Space Grotesk", "Noto Sans JP", sans-serif;
   line-height: 1.6;
