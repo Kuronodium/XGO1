@@ -40,8 +40,8 @@ export function randomObstacles(count, size = BOARD_SIZE) {
 }
 
 export function updateObstacleConfig(state, { enabled, count }) {
-  const obstaclesEnabled = enabled ?? state.obstaclesEnabled;
   const obstacleCount = count ?? state.obstacleCount;
+  const obstaclesEnabled = enabled ?? obstacleCount > 0;
   const obstacles = obstaclesEnabled ? randomObstacles(obstacleCount) : [];
   return {
     ...state,

@@ -44,6 +44,50 @@ ensureStyle(
   justify-content: center;
 }
 
+.board-area {
+  display: grid;
+  grid-template-columns: 88px 1fr 88px;
+  gap: 12px;
+  align-items: center;
+}
+
+.capture-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  color: var(--color-muted);
+}
+
+.capture-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.capture-count {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.capture-tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: var(--color-panel-shine);
+  min-height: 64px;
+}
+
+.capture-overflow {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
 .topline {
   display: flex;
   align-items: center;
@@ -297,6 +341,25 @@ button.ghost {
   margin-top: 12px;
 }
 
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin: 6px 0 12px;
+}
+
+.segmented button {
+  border-radius: 8px;
+  padding: 8px 0;
+}
+
+.segmented button.is-active {
+  background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
+  color: var(--color-primary-on-accent);
+  border: none;
+  box-shadow: var(--shadow-accent);
+}
+
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
@@ -334,13 +397,21 @@ export function createLayout() {
               <span class="label">手番:</span>
               <span id="player" data-color="black">Black</span>
             </div>
-            <div class="captures">
-              <span class="pill dark">黒取 <strong id="captures-black">0</strong></span>
-              <span class="pill light">白取 <strong id="captures-white">0</strong></span>
-            </div>
           </div>
 
-          <div id="board-host" class="board-shell"></div>
+          <div class="board-area">
+            <div class="capture-side">
+              <div class="capture-label">Black</div>
+              <div class="capture-count" id="captures-black">0</div>
+              <div class="capture-tray" id="capture-black-tray"></div>
+            </div>
+            <div id="board-host" class="board-shell"></div>
+            <div class="capture-side">
+              <div class="capture-label">White</div>
+              <div class="capture-count" id="captures-white">0</div>
+              <div class="capture-tray" id="capture-white-tray"></div>
+            </div>
+          </div>
           <p class="info" id="info">Setup: choose obstacle count and start.</p>
         </section>
 
@@ -364,8 +435,8 @@ export function createLayout() {
               <h2>Event Log</h2>
               <span class="hint">最新8件</span>
             </div>
-          <ul id="event-log" class="log"></ul>
-        </div>
+            <button id="open-event-log">Event Logを開く</button>
+          </div>
       </section>
     </main>
 
@@ -375,19 +446,19 @@ export function createLayout() {
           <h2>Setup</h2>
           <button class="ghost" id="close-setup">閉じる</button>
         </div>
-        <label class="row">
-          <input type="checkbox" id="obstacles-toggle" checked>
-          <span>障害物Xを使う</span>
-        </label>
-        <label class="row">
-          <span>障害物の個数</span>
-          <input type="number" id="obstacle-count" min="0" max="20" step="1" value="4" inputmode="numeric">
-        </label>
+        <div class="segmented" id="obstacle-segment">
+          <button data-count="0">0</button>
+          <button data-count="1">1</button>
+          <button data-count="2">2</button>
+          <button data-count="3">3</button>
+          <button data-count="4">4</button>
+          <button data-count="5">5</button>
+          <button data-count="6">6</button>
+        </div>
         <div class="buttons">
           <button id="randomize">もう一度ランダム配置</button>
           <button class="primary" id="start-setup">Start</button>
         </div>
-        <p class="note">9x9固定。障害物は開始後は変化しません。開始前のみ変更できます。</p>
       </div>
     </div>
 
@@ -415,6 +486,16 @@ export function createLayout() {
         </div>
       </div>
     </div>
+
+    <div class="modal" id="event-log-modal">
+      <div class="modal-panel">
+        <div class="modal-header">
+          <h2>Event Log</h2>
+          <button class="ghost" id="close-event-log">閉じる</button>
+        </div>
+        <ul id="event-log" class="log"></ul>
+      </div>
+    </div>
     </div>
   `;
 
@@ -426,8 +507,9 @@ export function createLayout() {
     playerDot: root.querySelector("#player-dot"),
     capturesBlack: root.querySelector("#captures-black"),
     capturesWhite: root.querySelector("#captures-white"),
-    obstaclesToggle: root.querySelector("#obstacles-toggle"),
-    obstacleCount: root.querySelector("#obstacle-count"),
+    captureBlackTray: root.querySelector("#capture-black-tray"),
+    captureWhiteTray: root.querySelector("#capture-white-tray"),
+    obstacleSegment: root.querySelector("#obstacle-segment"),
     randomizeBtn: root.querySelector("#randomize"),
     startSetupBtn: root.querySelector("#start-setup"),
     organizeBtn: root.querySelector("#to-organize"),
@@ -445,6 +527,9 @@ export function createLayout() {
     closeSetup: root.querySelector("#close-setup"),
     resultModal: root.querySelector("#result-modal"),
     closeResult: root.querySelector("#close-result"),
+    eventLogModal: root.querySelector("#event-log-modal"),
+    openEventLog: root.querySelector("#open-event-log"),
+    closeEventLog: root.querySelector("#close-event-log"),
   };
 
   return { root, elements };

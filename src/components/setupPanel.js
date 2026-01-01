@@ -1,21 +1,17 @@
-// セットアップ用のUI（障害物設定とStart操作）を管理するコンポーネント
+// セットアップ用のUI（障害物数とStart操作）を管理するコンポーネント
 import { GameMode } from "../state/gameState.js";
 
 export function createSetupPanel(
-  { toggleEl, countEl, randomizeBtn, startButtons = [] },
-  { onToggle, onCountChange, onRandomize, onStart }
+  { segmentEl, randomizeBtn, startButtons = [] },
+  { onCountChange, onRandomize, onStart }
 ) {
-  if (toggleEl) {
-    toggleEl.addEventListener("change", (e) => {
-      onToggle?.(e.target.checked);
-    });
-  }
-
-  if (countEl) {
-    countEl.addEventListener("change", (e) => {
-      const raw = Number(e.target.value);
-      const clamped = Number.isFinite(raw) ? Math.max(0, Math.min(20, raw)) : 0;
-      onCountChange?.(clamped);
+  if (segmentEl) {
+    segmentEl.addEventListener("click", (e) => {
+      const button = e.target.closest("button");
+      if (!button) return;
+      const count = Number(button.dataset.count);
+      if (!Number.isFinite(count)) return;
+      onCountChange?.(count);
     });
   }
 
@@ -28,8 +24,11 @@ export function createSetupPanel(
   });
 
   function render(state) {
-    if (toggleEl) toggleEl.checked = state.obstaclesEnabled;
-    if (countEl) countEl.value = String(state.obstacleCount);
+    if (segmentEl) {
+      segmentEl.querySelectorAll("button").forEach((btn) => {
+        btn.classList.toggle("is-active", btn.dataset.count === String(state.obstacleCount));
+      });
+    }
 
     const isSetup = state.mode === GameMode.Setup;
     if (randomizeBtn) randomizeBtn.disabled = !isSetup;

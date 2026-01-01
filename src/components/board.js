@@ -192,6 +192,15 @@ let dragGhost = null;
         root.appendChild(btn);
       }
     }
+
+    // Align background grid to actual cell pixels to avoid sub-pixel drift.
+    requestAnimationFrame(() => {
+      const width = root.clientWidth;
+      if (!width || size <= 0) return;
+      const cell = width / size;
+      root.style.setProperty("--board-spacing", `${cell}px`);
+      root.style.setProperty("--board-offset", `${cell / 2}px`);
+    });
   }
 
   return {

@@ -5,6 +5,7 @@ import { createSetupPanel } from "../components/setupPanel.js";
 import { createPlayPanel } from "../components/playPanel.js";
 import { createResultPanel } from "../components/resultPanel.js";
 import { createEventLog } from "../components/eventLog.js";
+import { createCaptureTray } from "../components/captureTray.js";
 import { createLayout } from "../components/layout.js";
 import { applyPalette } from "../theme/palette.js";
 import {
@@ -26,11 +27,14 @@ import { Events } from "../events/types.js";
 let state = createInitialState();
 let setupClosed = false;
 let resultClosed = false;
+let eventLogOpen = false;
 
 applyPalette();
 
 const appRoot = document.getElementById("app-root");
 const { root, elements: els } = createLayout();
+const fallback = document.getElementById("fallback");
+if (fallback) fallback.remove();
 appRoot.appendChild(root);
 
 const boardView = createBoardView({
@@ -50,13 +54,11 @@ const statusBar = createStatusBar({
 
 const setupPanel = createSetupPanel(
   {
-    toggleEl: els.obstaclesToggle,
-    countEl: els.obstacleCount,
+    segmentEl: els.obstacleSegment,
     randomizeBtn: els.randomizeBtn,
     startButtons: [els.startSetupBtn],
   },
   {
-    onToggle: (enabled) => setState(updateObstacleConfig(state, { enabled })),
     onCountChange: (count) => setState(updateObstacleConfig(state, { count })),
     onRandomize: () => {
       setState(randomizeObstacles(state));
@@ -96,7 +98,28 @@ const resultPanel = createResultPanel({
   winnerEl: els.winner,
 });
 
+const captureTray = createCaptureTray({
+  blackTrayEl: els.captureBlackTray,
+  whiteTrayEl: els.captureWhiteTray,
+  blackCountEl: els.capturesBlack,
+  whiteCountEl: els.capturesWhite,
+});
+
 const eventLog = createEventLog({ listEl: els.logList });
+
+if (els.openEventLog) {
+  els.openEventLog.addEventListener("click", () => {
+    eventLogOpen = true;
+    render();
+  });
+}
+
+if (els.closeEventLog) {
+  els.closeEventLog.addEventListener("click", () => {
+    eventLogOpen = false;
+    render();
+  });
+}
 
 if (els.closeSetup) {
   els.closeSetup.addEventListener("click", () => {
@@ -143,6 +166,7 @@ function render() {
   setupPanel.render(state);
   playPanel.render(state);
   resultPanel.render(state.lastScore, state.captures);
+  captureTray.render(state.captures);
   if (els.setupModal) {
     const open = state.mode === GameMode.Setup && !setupClosed;
     els.setupModal.classList.toggle("is-open", open);
@@ -150,6 +174,9 @@ function render() {
   if (els.resultModal) {
     const open = state.mode === GameMode.Result && !resultClosed;
     els.resultModal.classList.toggle("is-open", open);
+  }
+  if (els.eventLogModal) {
+    els.eventLogModal.classList.toggle("is-open", eventLogOpen);
   }
 }
 

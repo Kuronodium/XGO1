@@ -8,7 +8,19 @@
   <link rel="stylesheet" href="./src/theme/style.css">
 </head>
 <body>
-  <div id="app-root"></div>
+  <div id="app-root">
+    <div id="fallback" style="padding:24px;font-family:sans-serif;">
+      読み込み中…
+    </div>
+  </div>
+  <script>
+    if (location.protocol === "file:") {
+      const fallback = document.getElementById("fallback");
+      if (fallback) {
+        fallback.textContent = "このアプリはURLで公開された静的サイトとして開いてください（file:// ではモジュールが読み込めません）。";
+      }
+    }
+  </script>
   <script type="module" src="./src/app/main.js"></script>
 </body>
 </html>
