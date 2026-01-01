@@ -16,21 +16,20 @@ ensureStyle(
 .stone.small {
   width: 18px;
   height: 18px;
-  box-shadow: inset 0 1px 3px var(--color-stone-shadow-inner), 0 2px 5px var(--color-stone-shadow-outer);
+  box-shadow: inset 0 1px 3px var(--color-stone-shadow-inner), 0 0 5px var(--color-stone-shadow-outer);
 }
 
 .stone.black {
   background: radial-gradient(circle at 35% 30%, var(--color-stone-black-highlight), var(--color-stone-black-base));
-  border: 1px solid var(--color-stone-black-outline);
+  border: 0px solid var(--color-stone-black-outline);
   box-shadow:
-    0 0 10px var(--color-stone-black-shadow);
+    inset 0 2px 6px var(--color-stone-black-inner),
+    0 0 0 1px var(--color-stone-black-outline),
+    0 4px 10px var(--color-stone-black-shadow);
 }
 
 .stone.white {
   background: radial-gradient(circle at 35% 30%, var(--color-stone-white-highlight), var(--color-stone-white-base));
-  box-shadow:
-    inset 0 2px 6px var(--color-stone-shadow-inner),
-    0 0 10px var(--color-stone-black-shadow);
 }
 `
 );
