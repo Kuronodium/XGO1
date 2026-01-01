@@ -9,7 +9,7 @@ ensureStyle(
   height: 76%;
   border-radius: 999px;
   display: block;
-  box-shadow: inset 0 2px 6px var(--color-stone-shadow-inner), 0 4px 10px var(--color-stone-shadow-outer);
+  box-shadow: inset 0 2px 6px var(--color-stone-shadow-inner), 0 0 10px var(--color-stone-shadow-outer);
   transition: transform 80ms ease;
 }
 
@@ -23,13 +23,14 @@ ensureStyle(
   background: radial-gradient(circle at 35% 30%, var(--color-stone-black-highlight), var(--color-stone-black-base));
   border: 1px solid var(--color-stone-black-outline);
   box-shadow:
-    inset 0 2px 6px var(--color-stone-black-inner),
-    0 0 0 1px var(--color-stone-black-outline),
-    0 4px 10px var(--color-stone-black-shadow);
+    0 0 10px var(--color-stone-black-shadow);
 }
 
 .stone.white {
   background: radial-gradient(circle at 35% 30%, var(--color-stone-white-highlight), var(--color-stone-white-base));
+  box-shadow:
+    inset 0 2px 6px var(--color-stone-shadow-inner),
+    0 0 10px var(--color-stone-black-shadow);
 }
 `
 );

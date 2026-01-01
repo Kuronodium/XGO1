@@ -12,7 +12,7 @@ const hexToRgba = (hex, alpha = 1) => {
 export const palette = {
   bg: "#171717",
   bgDeep: "#0F0F0F",
-  surface: "#1B1B1B",
+  surface: hexToRgba("#1B1B1B", 0.3),
   card: "#1F1F1F",
   border: hexToRgba("#FFFFFF", 0.12),
   text: hexToRgba("#FFFFFF", 0.92),
@@ -27,15 +27,15 @@ export const palette = {
   turnGlow: hexToRgba("#FFFFFF", 0.18),
   turnGlowStrong: hexToRgba("#FFFFFF", 0.32),
   danger: "#E11F0C",
-  boardCell: "#2A2A2A",
+  boardCell: hexToRgba("#323232", 0.3),
   boardCellHover: "#333333",
   boardOutline: "#FFFFFF",
   gridLine: hexToRgba("#FFFFFF", 0.22),
   obstacleLine: hexToRgba("#FFFFFF", 0.85),
   obstacleStripe1: "#2C2C2C",
   obstacleStripe2: "#3A3A3A",
-  stoneBlackHighlight: "#3B3B3B",
-  stoneBlackBase: "#101010",
+  stoneBlackHighlight: "#2A2A2A",
+  stoneBlackBase: "#050505",
   stoneBlackInner: hexToRgba("#FFFFFF", 0.2),
   stoneWhiteHighlight: "#F6F6F6",
   stoneWhiteBase: "#BDBDBD",
@@ -43,7 +43,7 @@ export const palette = {
   stoneShadowOuter: hexToRgba("#000000", 0.5),
   stoneBlackOutline: hexToRgba("#FFFFFF", 0.7),
   stoneBlackOutlineSoft: hexToRgba("#FFFFFF", 0.4),
-  stoneBlackShadow: hexToRgba("#000000", 0.7),
+  stoneBlackShadow: hexToRgba("#FFFFFF", 0.35),
   panelShine: hexToRgba("#FFFFFF", 0.06),
   panelGrad1: hexToRgba("#2C2C2C", 0.7),
   panelGrad2: hexToRgba("#1E1E1E", 0.9),
@@ -69,7 +69,8 @@ export const palette = {
   topLineBg: hexToRgba("#FFFFFF", 0.08),
   infoBg: hexToRgba("#FFFFFF", 0.08),
   logBg: hexToRgba("#FFFFFF", 0.08),
-  shadow: "0 30px 80px rgba(0, 0, 0, 0.6)",
+  shadow: "0 14px 28px rgba(0, 0, 0, 0.55)",
+  boardShadow: "0 0 30px rgba(255, 255, 255, 0.25)",
   accentShadow: "0 10px 24px rgba(0, 0, 0, 0.35)",
 };
 
@@ -135,6 +136,7 @@ export function applyPalette() {
   --color-info-bg: ${palette.infoBg};
   --color-log-bg: ${palette.logBg};
   --shadow-elevated: ${palette.shadow};
+  --shadow-board: ${palette.boardShadow};
   --shadow-accent: ${palette.accentShadow};
   --shadow-primary: ${palette.primaryButtonShadow};
 }

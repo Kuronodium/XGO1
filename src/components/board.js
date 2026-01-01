@@ -1,5 +1,6 @@
 // 盤面の受動的な描画とクリック/移動入力を扱うコンポーネント
 import { CellState } from "../domain/types.js";
+import { placeStone } from "../domain/board.js";
 import { GameMode } from "../state/gameState.js";
 import { createStone } from "./stone.js";
 import { createObstacle } from "./obstacle.js";
@@ -14,18 +15,41 @@ ensureStyle(
   display: grid;
   gap: 0;
   grid-template-columns: repeat(var(--board-size), 1fr);
-  background-image:
-    linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px);
-  background-size: var(--board-spacing) var(--board-spacing);
-  background-position: var(--board-offset) var(--board-offset);
-  background-repeat: repeat;
-  padding: 24px;
-  border-radius: 18px;
+  padding: 16px;
+  border-radius: 26px;
   background-color: transparent;
   background-origin: content-box;
   background-clip: border-box;
-  box-shadow: inset 0 0 0 2px var(--color-board-outline);
+  box-shadow: inset 0 0 0 1px var(--color-board-outline);
+}
+
+.board-ripple {
+  position: absolute;
+  left: var(--ripple-x);
+  top: var(--ripple-y);
+  width: var(--ripple-size);
+  height: var(--ripple-size);
+  border-radius: 50%;
+  border: 0.1px solid rgba(255, 255, 255, 0.35);
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0.5;
+  pointer-events: none;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.12);
+  animation: board-ripple 900ms ease-out;
+}
+
+@keyframes board-ripple {
+  0% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
+  70% {
+    opacity: 0.18;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(20);
+  }
 }
 
 .cell {
@@ -42,8 +66,127 @@ ensureStyle(
   letter-spacing: 0.02em;
 }
 
-.cell:hover .stone {
-  transform: scale(1.04);
+.grid-line {
+  position: absolute;
+  background: var(--color-grid-line);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.grid-line--v {
+  width: 1px;
+  height: 100%;
+  left: 50%;
+  top: 0;
+  transform: translateX(-0.5px);
+}
+
+.grid-line--h {
+  width: 100%;
+  height: 1px;
+  left: 0;
+  top: 50%;
+  transform: translateY(-0.5px);
+}
+
+.cell.edge-top .grid-line--v {
+  top: 50%;
+  height: 50%;
+}
+
+.cell.edge-bottom .grid-line--v {
+  top: 0;
+  height: 50%;
+}
+
+.cell.edge-left .grid-line--h {
+  left: 50%;
+  width: 50%;
+}
+
+.cell.edge-right .grid-line--h {
+  left: 0;
+  width: 50%;
+}
+
+.cell > *:not(.grid-line) {
+  position: relative;
+  z-index: 1;
+}
+
+.cell:hover {
+  background: transparent;
+}
+
+.board[data-mode="play"] .cell {
+  cursor: default;
+}
+
+.board[data-mode="play"] .cell.placeable {
+  cursor: pointer;
+}
+
+.board[data-mode="play"] .cell.illegal {
+  cursor: not-allowed;
+}
+
+.board[data-mode="play"] .cell:not(.placeable) {
+  pointer-events: none;
+}
+
+.cell.empty::after {
+  content: "";
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  border-radius: 999px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+
+.board[data-mode="play"][data-next-player="black"] .cell.placeable:hover::after {
+  opacity: 0.45;
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--color-stone-black-highlight),
+    var(--color-stone-black-base)
+  );
+  border: 1px solid var(--color-stone-black-outline);
+  box-shadow: inset 0 2px 6px var(--color-stone-black-inner), 0 4px 10px var(--color-stone-black-shadow);
+}
+
+.board[data-mode="play"][data-next-player="white"] .cell.placeable:hover::after {
+  opacity: 0.45;
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--color-stone-white-highlight),
+    var(--color-stone-white-base)
+  );
+  box-shadow: inset 0 2px 6px var(--color-stone-shadow-inner), 0 4px 10px var(--color-stone-shadow-outer);
+}
+
+@media (hover: none) {
+  .board[data-mode="play"][data-next-player="black"] .cell.placeable:active::after {
+    opacity: 0.45;
+    background: radial-gradient(
+      circle at 35% 30%,
+      var(--color-stone-black-highlight),
+      var(--color-stone-black-base)
+    );
+    border: 1px solid var(--color-stone-black-outline);
+    box-shadow: inset 0 2px 6px var(--color-stone-black-inner), 0 4px 10px var(--color-stone-black-shadow);
+  }
+
+  .board[data-mode="play"][data-next-player="white"] .cell.placeable:active::after {
+    opacity: 0.45;
+    background: radial-gradient(
+      circle at 35% 30%,
+      var(--color-stone-white-highlight),
+      var(--color-stone-white-base)
+    );
+    box-shadow: inset 0 2px 6px var(--color-stone-shadow-inner), 0 4px 10px var(--color-stone-shadow-outer);
+  }
 }
 
 .cell:focus-visible {
@@ -138,11 +281,17 @@ export function createBoardView({ onPlay, onMove }) {
     }
   }
 
-  function render(board, mode) {
+  function render(board, mode, nextPlayer) {
     currentBoard = board;
     currentMode = mode;
     const size = board.length;
     root.innerHTML = "";
+    if (nextPlayer) {
+      root.dataset.nextPlayer = nextPlayer;
+    } else {
+      delete root.dataset.nextPlayer;
+    }
+    root.dataset.mode = mode ? mode.toLowerCase() : "";
     const spacing = size > 0 ? 100 / size : 100;
     const offset = size > 0 ? 50 / size : 0;
     root.style.setProperty("--board-size", size);
@@ -156,7 +305,18 @@ export function createBoardView({ onPlay, onMove }) {
         btn.className = "cell";
         btn.dataset.x = x;
         btn.dataset.y = y;
+        if (x === 0) btn.classList.add("edge-left");
+        if (x === size - 1) btn.classList.add("edge-right");
+        if (y === 0) btn.classList.add("edge-top");
+        if (y === size - 1) btn.classList.add("edge-bottom");
         btn.setAttribute("aria-label", `(${x + 1}, ${y + 1})`);
+
+        const lineV = document.createElement("span");
+        lineV.className = "grid-line grid-line--v";
+        const lineH = document.createElement("span");
+        lineH.className = "grid-line grid-line--h";
+        btn.appendChild(lineV);
+        btn.appendChild(lineH);
 
         let stoneEl = null;
         if (cell === CellState.Black || cell === CellState.White) {
@@ -194,6 +354,17 @@ export function createBoardView({ onPlay, onMove }) {
         } else if (cell === CellState.Obstacle) {
           btn.classList.add("obstacle");
           btn.appendChild(createObstacle());
+        } else {
+          btn.classList.add("empty");
+          if (currentMode === GameMode.Play && nextPlayer) {
+            const result = placeStone(board, nextPlayer, { x, y });
+            if (result.ok) {
+              btn.classList.add("placeable");
+            } else {
+              btn.classList.add("illegal");
+              btn.disabled = true;
+            }
+          }
         }
 
         if (currentMode === GameMode.Organize) {
@@ -221,9 +392,52 @@ export function createBoardView({ onPlay, onMove }) {
     requestAnimationFrame(updateGridMetrics);
   }
 
+  function animateObstacle(mark) {
+    mark.classList.remove("is-spinning");
+    void mark.offsetWidth;
+    mark.classList.add("is-spinning");
+    mark.addEventListener(
+      "animationend",
+      () => {
+        mark.classList.remove("is-spinning");
+      },
+      { once: true }
+    );
+  }
+
   return {
     element: root,
     render,
+    triggerRippleAt(point) {
+      const cell = root.querySelector(`.cell[data-x="${point.x}"][data-y="${point.y}"]`);
+      if (!cell) return;
+      const cellRect = cell.getBoundingClientRect();
+      const boardRect = root.getBoundingClientRect();
+      const ripple = document.createElement("div");
+      const size = Math.max(cellRect.width * 0.9, 12);
+      ripple.className = "board-ripple";
+      ripple.style.setProperty("--ripple-size", `${size}px`);
+      ripple.style.setProperty("--ripple-x", `${cellRect.left - boardRect.left + cellRect.width / 2}px`);
+      ripple.style.setProperty("--ripple-y", `${cellRect.top - boardRect.top + cellRect.height / 2}px`);
+      ripple.addEventListener("animationend", () => ripple.remove());
+      root.appendChild(ripple);
+    },
+    triggerObstacleSpin(point) {
+      const obstacleCells = root.querySelectorAll(".cell.obstacle");
+      obstacleCells.forEach((cell) => {
+        const ox = Number(cell.dataset.x);
+        const oy = Number(cell.dataset.y);
+        if (Number.isNaN(ox) || Number.isNaN(oy)) return;
+        const dx = Math.abs(ox - point.x);
+        const dy = Math.abs(oy - point.y);
+        const isDiagonal = dx > 0 && dy > 0;
+        const inRange = isDiagonal ? dx <= 1 && dy <= 1 : dx <= 2 && dy <= 2;
+        if (inRange) {
+          const mark = cell.querySelector(".obstacle-mark");
+          if (mark) animateObstacle(mark);
+        }
+      });
+    },
     clearSelection() {
       setSelected(null);
     },

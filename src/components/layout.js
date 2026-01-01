@@ -50,15 +50,78 @@ ensureStyle(
     var(--color-stone-black-highlight),
     var(--color-stone-black-base)
   );
-  border: 2px solid var(--color-stone-black-outline);
+  border: 1px solid var(--color-stone-black-outline);
   box-shadow: 0 10px 24px var(--color-stone-black-shadow), inset 0 2px 6px var(--color-stone-black-inner);
+}
+
+.turn-indicator {
+  --ripple-scale: 2;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.turn-indicator::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  opacity: 0;
+  transform: scale(1);
+  animation: none;
+}
+
+.turn-indicator::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  opacity: 0;
+  transform: scale(1);
+  animation: none;
+  animation-delay: 0.9s;
+}
+
+body.turn-black #side-black .turn-indicator::before,
+body.turn-black #side-black .turn-indicator::after {
+  opacity: 1;
+  animation-name: turn-ripple;
+  animation-duration: 1.8s;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+body.turn-white #side-white .turn-indicator::before,
+body.turn-white #side-white .turn-indicator::after {
+  opacity: 1;
+  animation-name: turn-ripple;
+  animation-duration: 1.8s;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes turn-ripple {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 0.25;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(var(--ripple-scale));
+  }
 }
 
 .board-shell {
   padding: 0;
   border-radius: 22px;
   background: var(--color-board-cell);
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-board);
 }
 
 .board-host {
@@ -238,12 +301,13 @@ button.ghost {
 }
 
 .modal-panel {
-  background: var(--color-card);
+  background: var(--color-surface);
   border: 1px solid var(--color-border);
   box-shadow: var(--shadow-elevated);
   border-radius: 14px;
-  padding: 16px;
+  padding: 32px;
   width: min(520px, 100%);
+  backdrop-filter: blur(4px);
 }
 
 .modal-header {
@@ -304,14 +368,16 @@ button.ghost {
 
 .segmented {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-  margin: 6px 0 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin: 0 auto;
+  max-width: 280px;
 }
 
 .segmented button {
-  border-radius: 8px;
-  padding: 8px 0;
+  border-radius: 12px;
+  padding: 12px 0;
+  font-size: 18px;
 }
 
 .segmented button.is-active {
@@ -327,26 +393,42 @@ button.ghost {
 
 .setup-panel .modal-header {
   justify-content: center;
+  margin-bottom: 24px;
 }
 
 .setup-panel .buttons {
   justify-content: center;
+  margin-top: 24px;
 }
 
 .setup-panel .start-button {
   font-size: 18px;
   padding: 14px 32px;
-  min-width: 180px;
+  min-width: 220px;
+  border-radius: 999px;
+}
+
+.setup-panel .modal-title {
+  font-size: 32px;
+  letter-spacing: 0.2em;
+}
+
+.setup-panel .modal-subtitle {
+  margin: 8px 0 24px;
+  color: var(--color-muted);
 }
 
 @media (max-width: 640px) {
+  .turn-indicator {
+    --ripple-scale: 1.4;
+  }
   .main-grid {
     grid-template-columns: 1fr;
   }
 
   .big-stone {
-    width: 16vw;
-    height: 16vw;
+    width: 14vw;
+    height: 14vw;
   }
 
   .side-panel {
@@ -435,7 +517,9 @@ export function createLayout() {
       <main class="main-grid">
         <aside class="side-panel" id="side-white">
           <div class="capture-tray" id="capture-white-tray"></div>
-          <div class="big-stone"></div>
+          <div class="turn-indicator">
+            <div class="big-stone"></div>
+          </div>
         </aside>
 
         <section class="board-shell">
@@ -443,7 +527,9 @@ export function createLayout() {
         </section>
 
         <aside class="side-panel" id="side-black">
-          <div class="big-stone black"></div>
+          <div class="turn-indicator">
+            <div class="big-stone black"></div>
+          </div>
           <div class="capture-tray" id="capture-black-tray"></div>
         </aside>
       </main>
@@ -472,19 +558,17 @@ export function createLayout() {
     <div class="modal" id="setup-modal">
       <div class="modal-panel setup-panel">
         <div class="modal-header">
-          <h2>Setup</h2>
+          <h2 class="modal-title">XGO</h2>
         </div>
+        <p class="modal-subtitle">GO game, encountering X</p>
         <div class="segmented" id="obstacle-segment">
           <button data-count="0">0</button>
-          <button data-count="1">1</button>
-          <button data-count="2">2</button>
-          <button data-count="3">3</button>
           <button data-count="4">4</button>
-          <button data-count="5">5</button>
-          <button data-count="6">6</button>
+          <button data-count="8">8</button>
+          <button data-count="12">12</button>
         </div>
         <div class="buttons">
-          <button class="primary start-button" id="start-setup">Start</button>
+          <button class="primary start-button" id="start-setup">Start Game</button>
         </div>
       </div>
     </div>

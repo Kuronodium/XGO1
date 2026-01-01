@@ -152,7 +152,7 @@ function setState(next, { recordHistory = false, clearHistory: shouldClear = fal
 }
 
 function render() {
-  boardView.render(state.board, state.mode);
+  boardView.render(state.board, state.mode, state.currentPlayer);
   statusBar.render(state);
   setupPanel.render(state);
   playPanel.render(state, {
@@ -176,6 +176,8 @@ function handlePlay(point) {
   const { next, ok } = playAt(state, point);
   if (!ok) return;
   setState(next, { recordHistory: true });
+  boardView.triggerRippleAt?.(point);
+  boardView.triggerObstacleSpin?.(point);
   logEvent(Events.StonePlaced, { player: placingPlayer, point });
 }
 

@@ -8,18 +8,27 @@
 body {
   margin: 0;
   min-height: 100vh;
-  --turn-gradient: linear-gradient(90deg, transparent 0%, transparent 100%);
-  background: radial-gradient(circle at 20% 20%, var(--color-accent-glow), transparent 35%),
-    radial-gradient(circle at 80% 10%, var(--color-accent-2-glow), transparent 40%),
-    var(--turn-gradient),
-    linear-gradient(135deg, var(--color-bg-deep), var(--color-bg));
+  background: linear-gradient(135deg, var(--color-bg-deep), var(--color-bg));
   color: var(--color-text);
   font-family: "Space Grotesk", "Noto Sans JP", sans-serif;
   line-height: 1.6;
 }
 
-body.turn-black {
-  --turn-gradient: linear-gradient(
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 180ms ease;
+  --turn-in: turnGlowInX;
+  --turn-out: turnGlowOutX;
+}
+
+body::before {
+  background: linear-gradient(
     to right,
     transparent 0%,
     transparent 55%,
@@ -29,8 +38,8 @@ body.turn-black {
   );
 }
 
-body.turn-white {
-  --turn-gradient: linear-gradient(
+body::after {
+  background: linear-gradient(
     to left,
     transparent 0%,
     transparent 55%,
@@ -38,6 +47,32 @@ body.turn-white {
     var(--color-turn-glow) 86%,
     var(--color-turn-glow-strong) 100%
   );
+  --turn-in: turnGlowInXReverse;
+  --turn-out: turnGlowOutXReverse;
+}
+
+body.turn-black::before {
+  opacity: 1;
+  transition-delay: 120ms;
+  animation: var(--turn-in) 740ms ease-in-out both;
+}
+
+body.turn-black::after {
+  opacity: 0;
+  transition-delay: 0ms;
+  animation: var(--turn-out) 120ms ease both;
+}
+
+body.turn-white::before {
+  opacity: 0;
+  transition-delay: 0ms;
+  animation: var(--turn-out) 120ms ease both;
+}
+
+body.turn-white::after {
+  opacity: 1;
+  transition-delay: 120ms;
+  animation: var(--turn-in) 740ms ease-in-out both;
 }
 
 #app-root {
@@ -45,21 +80,23 @@ body.turn-white {
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  position: relative;
+  z-index: 1;
 }
 
 #app-root > .app-shell {
   width: min(1200px, 100%);
 }
 
-@media (min-width: 981px) and (min-height: 820px) {
+@media (min-height: 820px) {
   #app-root {
     align-items: center;
   }
 }
 
 @media (max-width: 640px) {
-  body.turn-black {
-    --turn-gradient: linear-gradient(
+  body::before {
+    background: linear-gradient(
       to bottom,
       transparent 0%,
       transparent 55%,
@@ -69,8 +106,8 @@ body.turn-white {
     );
   }
 
-  body.turn-white {
-    --turn-gradient: linear-gradient(
+  body::after {
+    background: linear-gradient(
       to top,
       transparent 0%,
       transparent 55%,
@@ -78,6 +115,105 @@ body.turn-white {
       var(--color-turn-glow) 86%,
       var(--color-turn-glow-strong) 100%
     );
+  }
+
+  body::before,
+  body::after {
+    --turn-in: turnGlowInY;
+    --turn-out: turnGlowOutY;
+  }
+
+  body::after {
+    --turn-in: turnGlowInYReverse;
+    --turn-out: turnGlowOutYReverse;
+  }
+}
+
+@keyframes turnGlowInX {
+  0% {
+    opacity: 0;
+    transform: translateX(6%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes turnGlowOutX {
+  0% {
+    opacity: 0.45;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(6%);
+  }
+}
+
+@keyframes turnGlowInY {
+  0% {
+    opacity: 0;
+    transform: translateY(6%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes turnGlowOutY {
+  0% {
+    opacity: 0.45;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(6%);
+  }
+}
+
+@keyframes turnGlowInXReverse {
+  0% {
+    opacity: 0;
+    transform: translateX(-6%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes turnGlowOutXReverse {
+  0% {
+    opacity: 0.45;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-6%);
+  }
+}
+
+@keyframes turnGlowInYReverse {
+  0% {
+    opacity: 0;
+    transform: translateY(-6%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes turnGlowOutYReverse {
+  0% {
+    opacity: 0.45;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-6%);
   }
 }
 

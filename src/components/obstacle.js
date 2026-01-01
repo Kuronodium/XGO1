@@ -9,6 +9,7 @@ ensureStyle(
   width: 68%;
   height: 68%;
   display: inline-block;
+  transform-origin: center;
   pointer-events: none;
 }
 
@@ -30,6 +31,16 @@ ensureStyle(
 
 .obstacle-mark::after {
   transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.obstacle-mark.is-spinning {
+  animation: obstacle-spin 900ms ease-in-out;
+}
+
+@keyframes obstacle-spin {
+  to {
+    transform: rotate(1turn);
+  }
 }
 `
 );
