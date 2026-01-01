@@ -10,17 +10,35 @@ ensureStyle(
   "board-styles",
   `
 .board {
+  --board-padding: 16px;
   position: relative;
   width: 100%;
   display: grid;
   gap: 0;
   grid-template-columns: repeat(var(--board-size), 1fr);
-  padding: 16px;
+  padding: var(--board-padding);
   border-radius: 26px;
   background-color: transparent;
   background-origin: content-box;
   background-clip: border-box;
   box-shadow: inset 0 0 0 1px var(--color-board-outline);
+  overflow: hidden;
+}
+
+.board-grid {
+  position: absolute;
+  inset: var(--board-padding);
+  width: auto;
+  height: auto;
+  pointer-events: none;
+  z-index: 2;
+  shape-rendering: crispEdges;
+}
+
+.board-grid line {
+  stroke: var(--color-grid-line);
+  stroke-width: 1px;
+  vector-effect: non-scaling-stroke;
 }
 
 .board-ripple {
@@ -66,52 +84,9 @@ ensureStyle(
   letter-spacing: 0.02em;
 }
 
-.grid-line {
-  position: absolute;
-  background: var(--color-grid-line);
-  pointer-events: none;
-  z-index: 0;
-}
-
-.grid-line--v {
-  width: 1px;
-  height: 100%;
-  left: 50%;
-  top: 0;
-  transform: translateX(-0.5px);
-}
-
-.grid-line--h {
-  width: 100%;
-  height: 1px;
-  left: 0;
-  top: 50%;
-  transform: translateY(-0.5px);
-}
-
-.cell.edge-top .grid-line--v {
-  top: 50%;
-  height: 50%;
-}
-
-.cell.edge-bottom .grid-line--v {
-  top: 0;
-  height: 50%;
-}
-
-.cell.edge-left .grid-line--h {
-  left: 50%;
-  width: 50%;
-}
-
-.cell.edge-right .grid-line--h {
-  left: 0;
-  width: 50%;
-}
-
-.cell > *:not(.grid-line) {
+.cell > * {
   position: relative;
-  z-index: 1;
+  z-index: 3;
 }
 
 .cell:hover {
@@ -134,18 +109,33 @@ ensureStyle(
   pointer-events: none;
 }
 
-.cell.empty::after {
-  content: "";
+.cell:disabled {
+  opacity: 1;
+}
+
+.hover-preview {
   position: absolute;
+  top: 50%;
+  left: 50%;
   width: 70%;
   height: 70%;
   border-radius: 999px;
   opacity: 0;
+  transform: translate(-50%, -50%);
   transition: opacity 120ms ease;
+  z-index: 1;
+}
+
+.cell.empty .hover-preview {
+  display: block;
+}
+
+.cell:not(.empty) .hover-preview {
+  display: none;
 }
 
 
-.board[data-mode="play"][data-next-player="black"] .cell.placeable:hover::after {
+.board[data-mode="play"][data-next-player="black"] .cell.placeable:hover .hover-preview {
   opacity: 0.45;
   background: radial-gradient(
     circle at 35% 30%,
@@ -156,7 +146,7 @@ ensureStyle(
   box-shadow: inset 0 2px 6px var(--color-stone-black-inner), 0 4px 10px var(--color-stone-black-shadow);
 }
 
-.board[data-mode="play"][data-next-player="white"] .cell.placeable:hover::after {
+.board[data-mode="play"][data-next-player="white"] .cell.placeable:hover .hover-preview {
   opacity: 0.45;
   background: radial-gradient(
     circle at 35% 30%,
@@ -167,7 +157,7 @@ ensureStyle(
 }
 
 @media (hover: none) {
-  .board[data-mode="play"][data-next-player="black"] .cell.placeable:active::after {
+  .board[data-mode="play"][data-next-player="black"] .cell.placeable:active .hover-preview {
     opacity: 0.45;
     background: radial-gradient(
       circle at 35% 30%,
@@ -178,7 +168,7 @@ ensureStyle(
     box-shadow: inset 0 2px 6px var(--color-stone-black-inner), 0 4px 10px var(--color-stone-black-shadow);
   }
 
-  .board[data-mode="play"][data-next-player="white"] .cell.placeable:active::after {
+  .board[data-mode="play"][data-next-player="white"] .cell.placeable:active .hover-preview {
     opacity: 0.45;
     background: radial-gradient(
       circle at 35% 30%,
@@ -286,6 +276,26 @@ export function createBoardView({ onPlay, onMove }) {
     currentMode = mode;
     const size = board.length;
     root.innerHTML = "";
+    const gridLayer = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    gridLayer.classList.add("board-grid");
+    gridLayer.setAttribute("viewBox", `0 0 ${size} ${size}`);
+    gridLayer.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < size; i++) {
+      const coord = i + 0.5;
+      const hLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      hLine.setAttribute("x1", "0.5");
+      hLine.setAttribute("y1", `${coord}`);
+      hLine.setAttribute("x2", `${size - 0.5}`);
+      hLine.setAttribute("y2", `${coord}`);
+      gridLayer.appendChild(hLine);
+      const vLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      vLine.setAttribute("x1", `${coord}`);
+      vLine.setAttribute("y1", "0.5");
+      vLine.setAttribute("x2", `${coord}`);
+      vLine.setAttribute("y2", `${size - 0.5}`);
+      gridLayer.appendChild(vLine);
+    }
+    root.appendChild(gridLayer);
     if (nextPlayer) {
       root.dataset.nextPlayer = nextPlayer;
     } else {
@@ -305,18 +315,10 @@ export function createBoardView({ onPlay, onMove }) {
         btn.className = "cell";
         btn.dataset.x = x;
         btn.dataset.y = y;
-        if (x === 0) btn.classList.add("edge-left");
-        if (x === size - 1) btn.classList.add("edge-right");
-        if (y === 0) btn.classList.add("edge-top");
-        if (y === size - 1) btn.classList.add("edge-bottom");
         btn.setAttribute("aria-label", `(${x + 1}, ${y + 1})`);
-
-        const lineV = document.createElement("span");
-        lineV.className = "grid-line grid-line--v";
-        const lineH = document.createElement("span");
-        lineH.className = "grid-line grid-line--h";
-        btn.appendChild(lineV);
-        btn.appendChild(lineH);
+        const hoverPreview = document.createElement("span");
+        hoverPreview.className = "hover-preview";
+        btn.appendChild(hoverPreview);
 
         let stoneEl = null;
         if (cell === CellState.Black || cell === CellState.White) {

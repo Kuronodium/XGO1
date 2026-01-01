@@ -5,8 +5,8 @@ ensureStyle(
   "stone-styles",
   `
 .stone {
-  width: 76%;
-  height: 76%;
+  width: 72%;
+  height: 72%;
   border-radius: 999px;
   display: block;
   box-shadow: inset 0 2px 6px var(--color-stone-shadow-inner), 0 0 10px var(--color-stone-shadow-outer);
