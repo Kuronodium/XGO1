@@ -5,11 +5,12 @@ ensureStyle(
   "layout-styles",
   `
 .app-shell {
+  --ui-panel-fixed-height: 0px;
   max-width: 1200px;
   margin: 0 auto;
   padding: 32px 24px;
   display: grid;
-  gap: 22px;
+  gap: 40px;
 }
 
 .main-grid {
@@ -23,7 +24,8 @@ ensureStyle(
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 24px;
+  flex-wrap: nowrap;
   padding: 18px;
   border-radius: 20px;
   min-height: 360px;
@@ -31,8 +33,8 @@ ensureStyle(
 }
 
 .big-stone {
-  width: 96px;
-  height: 96px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   background: radial-gradient(
     circle at 35% 30%,
@@ -64,12 +66,19 @@ ensureStyle(
 }
 
 .capture-tray {
+  --capture-slot: 18px;
+  --capture-gap: 8px;
+  --capture-rows: 18;
   display: flex;
-  justify-content: center;
-  align-items: center;
   flex-direction: column;
-  gap: 8px;
-  min-height: 220px;
+  align-items: center;
+  justify-content: center;
+  gap: var(--capture-gap);
+  width: var(--capture-slot);
+  min-height: calc(
+    var(--capture-rows) * var(--capture-slot) + (var(--capture-rows) - 1) * var(--capture-gap)
+  );
+  flex: 0 0 auto;
 }
 
 .ui-panel {
@@ -105,6 +114,19 @@ ensureStyle(
   letter-spacing: 0.18em;
   font-size: 16px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.icon {
+  font-family: "Material Symbols Rounded";
+  font-weight: 400;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-block;
+  text-transform: none;
+  letter-spacing: normal;
+  -webkit-font-smoothing: antialiased;
 }
 
 .turn-label {
@@ -142,6 +164,7 @@ ensureStyle(
   font-weight: 600;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 140ms ease, background 140ms ease;
+  white-space: nowrap;
 }
 
 .panel-btn:hover {
@@ -316,29 +339,90 @@ button.ghost {
   min-width: 180px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 640px) {
   .main-grid {
     grid-template-columns: 1fr;
   }
 
+  .big-stone {
+    width: 16vw;
+    height: 16vw;
+  }
+
   .side-panel {
     min-height: auto;
+    width: 100%;
+    justify-content: space-between;
+    padding: 12px 8px;
   }
 
   .ui-panel {
-    grid-template-columns: 1fr;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 12px;
     border-radius: 24px;
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    z-index: 20;
   }
 
   .ui-panel__group {
     justify-content: center;
+    gap: 8px;
   }
-}
 
-@media (max-width: 640px) {
+  .ui-panel__center {
+    font-size: 16px;
+    letter-spacing: 0.14em;
+  }
+
+  .ui-panel__center .turn-count {
+    font-size: 24px;
+  }
+
+  .panel-btn {
+    padding: 8px 14px;
+    font-size: 16px;
+  }
+
+  .panel-btn.icon-btn {
+    min-width: 64px;
+  }
+
+  .capture-tray {
+    --capture-gap: 6px;
+    width: auto;
+    min-height: var(--capture-slot);
+    flex-direction: row;
+    justify-content: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+  }
+
+  #side-white .big-stone {
+    order: 1;
+  }
+
+  #side-white .capture-tray {
+    order: 2;
+    justify-content: start;
+  }
+
+  #side-black .capture-tray {
+    order: 1;
+    justify-content: end;
+  }
+
+  #side-black .big-stone {
+    order: 2;
+  }
+
   .app-shell {
-    padding: 24px 16px;
+    padding: 24px 16px 144px;
   }
 }
 `
@@ -366,8 +450,8 @@ export function createLayout() {
 
       <footer class="ui-panel" id="ui-panel" data-mode="play">
         <div class="ui-panel__group ui-panel__group--left">
-          <button class="panel-btn icon-btn" id="undo">Undo</button>
-          <button class="panel-btn icon-btn" id="redo">Redo</button>
+          <button class="panel-btn icon-btn" id="undo" aria-label="Undo"><span class="icon">undo</span></button>
+          <button class="panel-btn icon-btn" id="redo" aria-label="Redo"><span class="icon">redo</span></button>
         </div>
         <div class="ui-panel__center">
           <span class="turn-label">TURN</span>

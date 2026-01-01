@@ -95,7 +95,7 @@ const captureSides = createCaptureTray(
     blackTrayEl: els.captureBlackTray,
     whiteTrayEl: els.captureWhiteTray,
   },
-  { maxStones: 24, stoneSize: "small" }
+  { maxStones: 18, stoneSize: "small" }
 );
 
 if (els.closeResult) {

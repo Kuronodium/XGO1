@@ -57,7 +57,7 @@ body.turn-white {
   }
 }
 
-@media (max-width: 980px) {
+@media (max-width: 640px) {
   body.turn-black {
     --turn-gradient: linear-gradient(
       to bottom,
