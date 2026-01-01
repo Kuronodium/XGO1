@@ -23,10 +23,13 @@ export const palette = {
   primaryOnAccent: "#111111",
   accentGlow: hexToRgba("#FFFFFF", 0.08),
   accent2Glow: hexToRgba("#FFFFFF", 0.08),
+  turnGlowWeak: hexToRgba("#FFFFFF", 0.08),
+  turnGlow: hexToRgba("#FFFFFF", 0.18),
+  turnGlowStrong: hexToRgba("#FFFFFF", 0.32),
   danger: "#E11F0C",
   boardCell: "#2A2A2A",
   boardCellHover: "#333333",
-  boardOutline: hexToRgba("#FFFFFF", 0.35),
+  boardOutline: "#FFFFFF",
   gridLine: hexToRgba("#FFFFFF", 0.22),
   obstacleLine: hexToRgba("#FFFFFF", 0.85),
   obstacleStripe1: "#2C2C2C",
@@ -85,6 +88,9 @@ export function applyPalette() {
   --color-accent-2: ${palette.accent2};
   --color-accent-glow: ${palette.accentGlow};
   --color-accent-2-glow: ${palette.accent2Glow};
+  --color-turn-glow-weak: ${palette.turnGlowWeak};
+  --color-turn-glow: ${palette.turnGlow};
+  --color-turn-glow-strong: ${palette.turnGlowStrong};
   --color-primary-on-accent: ${palette.primaryOnAccent};
   --color-danger: ${palette.danger};
   --color-board-cell: ${palette.boardCell};

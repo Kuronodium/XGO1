@@ -20,10 +20,12 @@ ensureStyle(
   background-size: var(--board-spacing) var(--board-spacing);
   background-position: var(--board-offset) var(--board-offset);
   background-repeat: repeat;
-  padding: 0;
+  padding: 24px;
   border-radius: 18px;
   background-color: transparent;
-  box-shadow: inset 0 0 0 1px var(--color-board-outline);
+  background-origin: content-box;
+  background-clip: border-box;
+  box-shadow: inset 0 0 0 2px var(--color-board-outline);
 }
 
 .cell {
@@ -83,7 +85,11 @@ export function createBoardView({ onPlay, onMove }) {
     if (!size) return;
     const width = root.getBoundingClientRect().width;
     if (!width) return;
-    const cell = width / size;
+    const styles = getComputedStyle(root);
+    const paddingX = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
+    const contentWidth = width - paddingX;
+    if (contentWidth <= 0) return;
+    const cell = contentWidth / size;
     root.style.setProperty("--board-spacing", `${cell}px`);
     root.style.setProperty("--board-offset", `${cell / 2}px`);
   }

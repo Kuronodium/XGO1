@@ -13,20 +13,17 @@ function countStones(board) {
 
 export function createStatusBar({
   turnCountEl,
-  topbarBlackEl,
-  topbarWhiteEl,
-  sideBlackEl,
-  sideWhiteEl,
+  rootEl = document.body,
 }) {
   function render(state) {
     const isBlackTurn = state.currentPlayer === Player.Black;
     const turnCount = countStones(state.board) + 1;
 
     if (turnCountEl) turnCountEl.textContent = String(turnCount);
-    if (topbarBlackEl) topbarBlackEl.classList.toggle("is-active", isBlackTurn);
-    if (topbarWhiteEl) topbarWhiteEl.classList.toggle("is-active", !isBlackTurn);
-    if (sideBlackEl) sideBlackEl.classList.toggle("is-active", isBlackTurn);
-    if (sideWhiteEl) sideWhiteEl.classList.toggle("is-active", !isBlackTurn);
+    if (rootEl) {
+      rootEl.classList.toggle("turn-black", isBlackTurn);
+      rootEl.classList.toggle("turn-white", !isBlackTurn);
+    }
   }
 
   return { render };

@@ -17,12 +17,6 @@ export function createCaptureTray(
     for (let i = 0; i < displayCount; i++) {
       trayEl.appendChild(createStone(color, stoneSize));
     }
-    if (count > maxStones) {
-      const more = document.createElement("span");
-      more.className = "capture-overflow";
-      more.textContent = `+${count - maxStones}`;
-      trayEl.appendChild(more);
-    }
   }
 
   function render(captures) {
