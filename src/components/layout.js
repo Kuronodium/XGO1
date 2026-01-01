@@ -374,6 +374,11 @@ button.ghost {
   max-width: 280px;
 }
 
+.segmented.obstacle-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  max-width: 360px;
+}
+
 .segmented button {
   border-radius: 12px;
   padding: 12px 0;
@@ -389,6 +394,18 @@ button.ghost {
 
 .setup-panel {
   text-align: center;
+}
+
+.setup-section {
+  margin-top: 18px;
+}
+
+.setup-label {
+  margin: 0 0 12px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-muted);
 }
 
 .setup-panel .modal-header {
@@ -561,11 +578,23 @@ export function createLayout() {
           <h2 class="modal-title">XGO</h2>
         </div>
         <p class="modal-subtitle">GO game, encountering X</p>
-        <div class="segmented" id="obstacle-segment">
+        <div class="setup-section">
+          <p class="setup-label">Board Size</p>
+          <div class="segmented" id="size-segment">
+            <button data-size="7">7x7</button>
+            <button data-size="9">9x9</button>
+          </div>
+        </div>
+        <div class="setup-section">
+          <p class="setup-label">Obstacles</p>
+        <div class="segmented obstacle-grid" id="obstacle-segment">
           <button data-count="0">0</button>
+          <button data-count="2">2</button>
           <button data-count="4">4</button>
+          <button data-count="6">6</button>
           <button data-count="8">8</button>
           <button data-count="12">12</button>
+        </div>
         </div>
         <div class="buttons">
           <button class="primary start-button" id="start-setup">Start Game</button>
@@ -611,6 +640,7 @@ export function createLayout() {
     captureBlackTray: root.querySelector("#capture-black-tray"),
     captureWhiteTray: root.querySelector("#capture-white-tray"),
     obstacleSegment: root.querySelector("#obstacle-segment"),
+    boardSizeSegment: root.querySelector("#size-segment"),
     startSetupBtn: root.querySelector("#start-setup"),
     organizeBtn: root.querySelector("#to-organize"),
     backToPlayBtn: root.querySelector("#back-to-play"),

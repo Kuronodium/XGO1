@@ -10,12 +10,14 @@ export const GameMode = {
 };
 
 export function createInitialState() {
+  const boardSize = BOARD_SIZE;
   const obstaclesEnabled = true;
   const obstacleCount = 4;
-  const obstacles = obstaclesEnabled ? randomObstacles(obstacleCount) : [];
+  const obstacles = obstaclesEnabled ? randomObstacles(obstacleCount, boardSize) : [];
   return {
     mode: GameMode.Setup,
-    board: createBoard(BOARD_SIZE, obstacles),
+    boardSize,
+    board: createBoard(boardSize, obstacles),
     currentPlayer: Player.Black,
     captures: { black: 0, white: 0 },
     komi: 0,
@@ -45,13 +47,30 @@ export function randomObstacles(count, size = BOARD_SIZE) {
 export function updateObstacleConfig(state, { enabled, count }) {
   const obstacleCount = count ?? state.obstacleCount;
   const obstaclesEnabled = enabled ?? obstacleCount > 0;
-  const obstacles = obstaclesEnabled ? randomObstacles(obstacleCount) : [];
+  const boardSize = state.boardSize ?? BOARD_SIZE;
+  const obstacles = obstaclesEnabled ? randomObstacles(obstacleCount, boardSize) : [];
   return {
     ...state,
     obstaclesEnabled,
     obstacleCount,
     obstacles,
-    board: createBoard(BOARD_SIZE, obstacles),
+    board: createBoard(boardSize, obstacles),
+    mode: GameMode.Setup,
+    captures: { black: 0, white: 0 },
+    currentPlayer: Player.Black,
+    lastScore: null,
+  };
+}
+
+export function updateBoardSize(state, boardSize) {
+  const size = Number(boardSize);
+  if (!Number.isFinite(size)) return state;
+  const obstacles = state.obstaclesEnabled ? randomObstacles(state.obstacleCount, size) : [];
+  return {
+    ...state,
+    boardSize: size,
+    obstacles,
+    board: createBoard(size, obstacles),
     mode: GameMode.Setup,
     captures: { black: 0, white: 0 },
     currentPlayer: Player.Black,
@@ -60,11 +79,12 @@ export function updateObstacleConfig(state, { enabled, count }) {
 }
 
 export function randomizeObstacles(state) {
-  const obstacles = state.obstaclesEnabled ? randomObstacles(state.obstacleCount) : [];
+  const boardSize = state.boardSize ?? BOARD_SIZE;
+  const obstacles = state.obstaclesEnabled ? randomObstacles(state.obstacleCount, boardSize) : [];
   return {
     ...state,
     obstacles,
-    board: createBoard(BOARD_SIZE, obstacles),
+    board: createBoard(boardSize, obstacles),
     mode: GameMode.Setup,
     currentPlayer: Player.Black,
     captures: { black: 0, white: 0 },
@@ -74,9 +94,10 @@ export function randomizeObstacles(state) {
 
 export function startGame(state) {
   const obstacles = state.obstaclesEnabled ? state.obstacles : [];
+  const boardSize = state.boardSize ?? BOARD_SIZE;
   return {
     ...state,
-    board: createBoard(BOARD_SIZE, obstacles),
+    board: createBoard(boardSize, obstacles),
     mode: GameMode.Play,
     currentPlayer: Player.Black,
     captures: { black: 0, white: 0 },
@@ -111,7 +132,8 @@ export function moveStone(state, from, to) {
   if (state.mode !== GameMode.Organize) {
     return { next: state, ok: false, reason: "not-in-organize" };
   }
-  if (!isOnBoard(from) || !isOnBoard(to)) {
+  const boardSize = state.board.length;
+  if (!isOnBoard(from, boardSize) || !isOnBoard(to, boardSize)) {
     return { next: state, ok: false, reason: "out-of-board" };
   }
   const board = cloneBoard(state.board);
@@ -148,12 +170,13 @@ export function backToOrganize(state) {
 }
 
 export function resetGame(state) {
-  const obstacles = state.obstaclesEnabled ? randomObstacles(state.obstacleCount) : [];
+  const boardSize = state.boardSize ?? BOARD_SIZE;
+  const obstacles = state.obstaclesEnabled ? randomObstacles(state.obstacleCount, boardSize) : [];
   return {
     ...state,
     mode: GameMode.Setup,
     obstacles,
-    board: createBoard(BOARD_SIZE, obstacles),
+    board: createBoard(boardSize, obstacles),
     currentPlayer: Player.Black,
     captures: { black: 0, white: 0 },
     lastScore: null,

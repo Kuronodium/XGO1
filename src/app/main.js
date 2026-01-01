@@ -11,6 +11,7 @@ import { cloneBoard } from "../domain/board.js";
 import {
   GameMode,
   createInitialState,
+  updateBoardSize,
   updateObstacleConfig,
   startGame,
   playAt,
@@ -49,11 +50,14 @@ const statusBar = createStatusBar({
 const setupPanel = createSetupPanel(
   {
     segmentEl: els.obstacleSegment,
+    sizeSegmentEl: els.boardSizeSegment,
     startButtons: [els.startSetupBtn],
   },
   {
     onCountChange: (count) =>
       setState(updateObstacleConfig(state, { count }), { clearHistory: true }),
+    onSizeChange: (size) =>
+      setState(updateBoardSize(state, size), { clearHistory: true }),
     onStart: () => {
       setState(startGame(state), { clearHistory: true });
       logEvent(Events.GameStarted, { withObstacles: state.obstaclesEnabled, obstacles: state.obstacles });
@@ -115,6 +119,7 @@ if (els.resultBackOrganizeBtn) {
 function cloneStateSnapshot(source) {
   return {
     ...source,
+    boardSize: source.boardSize,
     board: cloneBoard(source.board),
     captures: { ...source.captures },
     obstacles: source.obstacles.map((p) => ({ ...p })),
