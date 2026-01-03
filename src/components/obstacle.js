@@ -34,7 +34,7 @@ ensureStyle(
 }
 
 .obstacle-mark.is-spinning {
-  animation: obstacle-spin 900ms ease-in-out;
+  animation: obstacle-spin 900ms ease-out;
 }
 
 @keyframes obstacle-spin {

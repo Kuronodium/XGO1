@@ -394,9 +394,10 @@ export function createBoardView({ onPlay, onMove }) {
     requestAnimationFrame(updateGridMetrics);
   }
 
-  function animateObstacle(mark) {
+  function animateObstacle(mark, delayMs = 0) {
     mark.classList.remove("is-spinning");
     void mark.offsetWidth;
+    mark.style.animationDelay = `${Math.max(0, delayMs)}ms`;
     mark.classList.add("is-spinning");
     mark.addEventListener(
       "animationend",
@@ -432,11 +433,11 @@ export function createBoardView({ onPlay, onMove }) {
         if (Number.isNaN(ox) || Number.isNaN(oy)) return;
         const dx = Math.abs(ox - point.x);
         const dy = Math.abs(oy - point.y);
-        const isDiagonal = dx > 0 && dy > 0;
-        const inRange = isDiagonal ? dx <= 1 && dy <= 1 : dx <= 2 && dy <= 2;
-        if (inRange) {
-          const mark = cell.querySelector(".obstacle-mark");
-          if (mark) animateObstacle(mark);
+        const mark = cell.querySelector(".obstacle-mark");
+        if (mark) {
+          const distance = Math.hypot(dx, dy);
+          const delayMs = Math.round(distance * 50);
+          animateObstacle(mark, delayMs);
         }
       });
     },
