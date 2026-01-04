@@ -292,6 +292,10 @@ body.turn-white #side-white .turn-indicator::after {
   padding: 10px 0;
 }
 
+.is-hidden {
+  display: none;
+}
+
 .buttons {
   display: flex;
   flex-wrap: wrap;
@@ -797,6 +801,9 @@ export function createLayout() {
             <button class="panel-btn" id="score">Judge</button>
             <button class="panel-btn" data-reset>Reset</button>
           </div>
+          <div class="panel-controls room-controls">
+            <button class="panel-btn ghost" id="leave-room">Leave</button>
+          </div>
         </div>
       </footer>
 
@@ -914,6 +921,7 @@ export function createLayout() {
     matchModal: root.querySelector("#match-modal"),
     passBlackBtn: root.querySelector("#pass-black"),
     passWhiteBtn: root.querySelector("#pass-white"),
+    leaveRoomBtn: root.querySelector("#leave-room"),
     setupModal: root.querySelector("#setup-modal"),
     resultModal: root.querySelector("#result-modal"),
     closeResult: root.querySelector("#close-result"),

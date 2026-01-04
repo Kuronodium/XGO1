@@ -1,4 +1,5 @@
 // XGOアプリの画面配線とイベントハンドラをまとめたエントリポイント
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 import { createBoardView } from "../components/board.js";
 import { createStatusBar } from "../components/statusBar.js";
 import { createSetupPanel } from "../components/setupPanel.js";
@@ -31,6 +32,35 @@ import {
 import { emit } from "../events/bus.js";
 import { Events } from "../events/types.js";
 
+const supabaseConfig = window.__SUPABASE__ ?? {};
+const supabaseUrl = supabaseConfig.url;
+const supabaseAnonKey = supabaseConfig.anonKey;
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
+const clientId = (() => {
+  const stored = window.sessionStorage.getItem("xgo-client-id");
+  if (stored) return stored;
+  const next = crypto.randomUUID();
+  window.sessionStorage.setItem("xgo-client-id", next);
+  return next;
+})();
+let activeGame = { id: null, code: null };
+let onlineChannel = null;
+let suppressRemoteSync = false;
+let pollTimer = null;
+
+const playerRoles = {
+  Black: "black",
+  White: "white",
+};
+
+function makePlayer(role) {
+  return { id: clientId, role, joinedAt: Date.now() };
+}
+
+function getRoleForClient(players) {
+  return players.find((p) => p.id === clientId)?.role ?? null;
+}
+
 let state = createInitialState();
 let resultClosed = false;
 const history = { past: [], future: [] };
@@ -58,16 +88,239 @@ function updateUrlWithCode(bits) {
   window.history.replaceState({}, "", nextUrl);
 }
 
-const initialCode = parseMatchCode(
-  new URLSearchParams(window.location.search).get("code"),
-  matchCodeSize
-);
+const urlCodeParam = new URLSearchParams(window.location.search).get("code");
+const initialCode = parseMatchCode(urlCodeParam, matchCodeSize);
+if (urlCodeParam && !initialCode) {
+  updateUrlWithCode(null);
+}
 if (initialCode) {
   state = {
     ...state,
     matchType: MatchType.Online,
     matchCode: initialCode,
   };
+}
+
+function serializeState(source) {
+  return {
+    mode: source.mode,
+    boardSize: source.boardSize,
+    board: source.board,
+    currentPlayer: source.currentPlayer,
+    hostId: source.hostId ?? null,
+    players: source.players ?? [],
+    captures: source.captures,
+    komi: source.komi,
+    obstaclesEnabled: source.obstaclesEnabled,
+    obstacleCount: source.obstacleCount,
+    obstacles: source.obstacles,
+    lastScore: source.lastScore,
+    matchType: source.matchType,
+    matchCode: source.matchCode,
+    consecutivePasses: source.consecutivePasses,
+    lastPassBy: source.lastPassBy,
+    syncVersion: source.syncVersion ?? 0,
+    _meta: {
+      updatedBy: clientId,
+      updatedAt: Date.now(),
+    },
+  };
+}
+
+function applyRemoteState(remote) {
+  if (!remote) return;
+  const remoteVersion = typeof remote.syncVersion === "number" ? remote.syncVersion : null;
+  const localVersion = typeof state.syncVersion === "number" ? state.syncVersion : null;
+  if (remoteVersion !== null && localVersion !== null && remoteVersion < localVersion) return;
+  const next = {
+    ...state,
+    ...remote,
+    matchType: MatchType.Online,
+    matchCode: remote.matchCode ?? state.matchCode,
+    localPlayer: state.localPlayer,
+    isHost: state.isHost,
+    players: remote.players ?? state.players ?? [],
+  };
+  suppressRemoteSync = true;
+  setState(next, { clearHistory: true, isRemote: true });
+  suppressRemoteSync = false;
+}
+
+async function createOrJoinGame(code, baseState) {
+  if (!supabase) return null;
+  const cleanCode = (code ?? []).join("");
+  if (!cleanCode) return null;
+  const { data: existing, error: selectError } = await supabase
+    .from("games")
+    .select("id, state, updated_at")
+    .eq("code", cleanCode)
+    .maybeSingle();
+  if (selectError) {
+    console.error(selectError);
+    return null;
+  }
+  if (existing) {
+    activeGame = { id: existing.id, code: cleanCode };
+    const remoteState = existing.state ?? {};
+    const players = Array.isArray(remoteState.players) ? remoteState.players : [];
+    const existingRole = getRoleForClient(players);
+    if (existingRole) {
+      if (!remoteState.hostId) {
+        const nextHostId = players[0]?.id ?? clientId;
+        const nextState = { ...remoteState, hostId: nextHostId };
+        const { data: updated, error: updateError } = await supabase
+          .from("games")
+          .update({ state: nextState, updated_at: new Date().toISOString() })
+          .eq("id", existing.id)
+          .select("id, state, updated_at")
+          .single();
+        if (updateError) {
+          console.error(updateError);
+          return null;
+        }
+        return { created: false, data: updated, role: existingRole, rejoin: true };
+      }
+      return { created: false, data: existing, role: existingRole, rejoin: true };
+    }
+    if (players.length >= 2) {
+      return { created: false, data: existing, full: true };
+    }
+    const nextRole = players.some((p) => p.role === playerRoles.Black) ? playerRoles.White : playerRoles.Black;
+    const nextPlayers = [...players, makePlayer(nextRole)];
+    const nextState = {
+      ...remoteState,
+      players: nextPlayers,
+      hostId: remoteState.hostId ?? nextPlayers[0]?.id ?? null,
+    };
+    const { data: updated, error: updateError } = await supabase
+      .from("games")
+      .update({ state: nextState, updated_at: new Date().toISOString() })
+      .eq("id", existing.id)
+      .select("id, state, updated_at")
+      .single();
+    if (updateError) {
+      console.error(updateError);
+      return null;
+    }
+    return { created: false, data: updated, role: nextRole };
+  }
+
+  const initial = serializeState(baseState);
+  const { data: created, error: insertError } = await supabase
+    .from("games")
+    .insert({ code: cleanCode, state: initial })
+    .select("id, state, updated_at")
+    .single();
+  if (insertError) {
+    console.error(insertError);
+    return null;
+  }
+  activeGame = { id: created.id, code: cleanCode };
+  return { created: true, data: created };
+}
+
+async function syncStateIfOnline() {
+  if (suppressRemoteSync) return;
+  if (!supabase || state.matchType !== MatchType.Online) return;
+  if (!activeGame.id) return;
+  const payload = serializeState(state);
+  const { error } = await supabase
+    .from("games")
+    .update({ state: payload, updated_at: new Date().toISOString() })
+    .eq("id", activeGame.id);
+  if (error) console.error(error);
+}
+
+async function subscribeToGame(code) {
+  if (!supabase || !code) return;
+  if (onlineChannel) {
+    await supabase.removeChannel(onlineChannel);
+    onlineChannel = null;
+  }
+  onlineChannel = supabase
+    .channel("games")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "games", filter: `code=eq.${code}` },
+      (payload) => {
+        const remote = payload.new?.state;
+        if (!remote || remote?._meta?.updatedBy === clientId) return;
+        applyRemoteState(remote);
+      }
+    )
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") return;
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        startPolling(code);
+      }
+    });
+}
+
+async function pollGameState(code) {
+  if (!supabase || !code) return;
+  const { data, error } = await supabase
+    .from("games")
+    .select("state")
+    .eq("code", code)
+    .maybeSingle();
+  if (error) {
+    console.error(error);
+    return;
+  }
+  if (data?.state && data.state?._meta?.updatedBy !== clientId) {
+    applyRemoteState(data.state);
+  }
+}
+
+function startPolling(code) {
+  if (pollTimer) return;
+  pollTimer = window.setInterval(() => {
+    void pollGameState(code);
+  }, 1200);
+}
+
+function stopPolling() {
+  if (!pollTimer) return;
+  window.clearInterval(pollTimer);
+  pollTimer = null;
+}
+
+async function leaveRoom() {
+  if (!supabase || !activeGame.id) return;
+  const players = Array.isArray(state.players) ? state.players : [];
+  const nextPlayers = players.filter((p) => p.id !== clientId);
+  const nextHost = state.hostId === clientId ? nextPlayers[0]?.id ?? null : state.hostId;
+  const roomState = enterSetup({
+    ...state,
+    mode: GameMode.Setup,
+    matchType: MatchType.Online,
+    players: nextPlayers,
+    hostId: nextHost,
+  });
+  const { error } = await supabase
+    .from("games")
+    .update({ state: serializeState(roomState), updated_at: new Date().toISOString() })
+    .eq("id", activeGame.id);
+  if (error) console.error(error);
+  updateUrlWithCode(null);
+  activeGame = { id: null, code: null };
+  if (onlineChannel) {
+    await supabase.removeChannel(onlineChannel);
+    onlineChannel = null;
+  }
+  stopPolling();
+  setState(
+    {
+      ...state,
+      mode: GameMode.Match,
+      matchType: MatchType.Online,
+      localPlayer: Player.Black,
+      hostId: null,
+      isHost: false,
+      players: [],
+    },
+    { clearHistory: true }
+  );
 }
 
 const appRoot = document.getElementById("app-root");
@@ -94,11 +347,16 @@ const setupPanel = createSetupPanel(
     startButtons: [els.startSetupBtn],
   },
   {
-    onCountChange: (count) =>
-      setState(updateObstacleConfig(state, { count }), { clearHistory: true }),
-    onSizeChange: (size) =>
-      setState(updateBoardSize(state, size), { clearHistory: true }),
+    onCountChange: (count) => {
+      if (state.matchType === MatchType.Online && !state.isHost) return;
+      setState(updateObstacleConfig(state, { count }), { clearHistory: true });
+    },
+    onSizeChange: (size) => {
+      if (state.matchType === MatchType.Online && !state.isHost) return;
+      setState(updateBoardSize(state, size), { clearHistory: true });
+    },
     onStart: () => {
+      if (state.matchType === MatchType.Online && !state.isHost) return;
       setState(startGame(state), { clearHistory: true });
       logEvent(Events.GameStarted, { withObstacles: state.obstaclesEnabled, obstacles: state.obstacles });
     },
@@ -119,12 +377,7 @@ const matchPanel = createMatchPanel(
       setState(toggleMatchCode(state, index));
     },
     onStart: () => {
-      if (state.matchType === MatchType.Online) {
-        updateUrlWithCode(state.matchCode ?? []);
-      } else {
-        updateUrlWithCode(null);
-      }
-      setState(enterSetup(state), { clearHistory: true });
+      void handleMatchStart();
     },
   }
 );
@@ -165,6 +418,58 @@ const captureSides = createCaptureTray(
   },
   { maxStones: 18, stoneSize: "small" }
 );
+
+async function autoJoinFromUrl() {
+  if (!urlCodeParam) return;
+  if (!initialCode || !supabase) {
+    updateUrlWithCode(null);
+    return;
+  }
+  const code = initialCode.join("");
+  const existing = await createOrJoinGame(initialCode, {
+    ...state,
+    matchType: MatchType.Online,
+    localPlayer: Player.Black,
+    isHost: true,
+    hostId: clientId,
+    players: [makePlayer(playerRoles.Black)],
+  });
+  if (!existing) {
+    updateUrlWithCode(null);
+    return;
+  }
+  if (existing.full) {
+    window.alert("このルームは満員です。別のコードで試してください。");
+    updateUrlWithCode(null);
+    return;
+  }
+  if (existing.created) {
+    const hostState = enterSetup({
+      ...state,
+      matchType: MatchType.Online,
+      localPlayer: Player.Black,
+      isHost: true,
+      hostId: clientId,
+      players: [makePlayer(playerRoles.Black)],
+    });
+    setState(hostState, { clearHistory: true });
+  } else if (existing.data) {
+    const roleKey = existing.role ?? getRoleForClient(existing.data.state?.players ?? []);
+    const role = roleKey === playerRoles.White ? Player.White : Player.Black;
+    const guestState = {
+      ...state,
+      matchType: MatchType.Online,
+      localPlayer: role,
+      isHost: existing.data.state?.hostId === clientId,
+      hostId: existing.data.state?.hostId ?? null,
+      players: existing.data.state?.players ?? [],
+    };
+    setState(guestState, { clearHistory: true });
+    applyRemoteState(existing.data.state);
+  }
+  await subscribeToGame(code);
+  startPolling(code);
+}
 
 if (els.closeResult) {
   els.closeResult.addEventListener("click", () => {
@@ -207,16 +512,26 @@ function logEvent(type, payload) {
   emit(type, payload);
 }
 
-function setState(next, { recordHistory = false, clearHistory: shouldClear = false } = {}) {
+function setState(
+  next,
+  { recordHistory = false, clearHistory: shouldClear = false, isRemote = false } = {}
+) {
   if (recordHistory) pushHistory(state);
   if (shouldClear) clearHistory();
   const prevMode = state.mode;
-  state = next;
+  const currentVersion = typeof state.syncVersion === "number" ? state.syncVersion : 0;
+  const nextVersion = isRemote
+    ? typeof next.syncVersion === "number"
+      ? next.syncVersion
+      : currentVersion
+    : currentVersion + 1;
+  state = { ...next, syncVersion: nextVersion };
   if (state.mode !== GameMode.Organize) {
     boardView.clearSelection();
   }
   if (state.mode !== GameMode.Result) resultClosed = false;
   render();
+  void syncStateIfOnline();
   if (prevMode !== state.mode) {
     logEvent(Events.ModeChanged, { from: prevMode, to: state.mode });
   }
@@ -251,6 +566,11 @@ function render() {
   if (els.passWhiteBtn) {
     els.passWhiteBtn.disabled = !canWhitePass;
     els.passWhiteBtn.classList.toggle("is-passed", state.lastPassBy === Player.White);
+  }
+  if (els.leaveRoomBtn) {
+    const canLeave = isOnline && !!activeGame.id;
+    els.leaveRoomBtn.disabled = !canLeave;
+    els.leaveRoomBtn.classList.toggle("is-hidden", !canLeave);
   }
   if (els.setupModal) {
     const open = state.mode === GameMode.Setup;
@@ -317,10 +637,60 @@ function handleRedo() {
 }
 
 setState(state);
+void autoJoinFromUrl();
+
+async function handleMatchStart() {
+  if (state.matchType === MatchType.Online) {
+    updateUrlWithCode(state.matchCode ?? []);
+    const code = (state.matchCode ?? []).join("");
+    const hostState = enterSetup({
+      ...state,
+      matchType: MatchType.Online,
+      localPlayer: Player.Black,
+      isHost: true,
+      hostId: clientId,
+      players: [makePlayer(playerRoles.Black)],
+    });
+    const connected = await createOrJoinGame(state.matchCode ?? [], hostState);
+    if (connected?.full) {
+      window.alert("このルームは満員です。別のコードで試してください。");
+      return;
+    }
+    if (connected?.created) {
+      setState(hostState, { clearHistory: true });
+    } else if (connected?.data) {
+      const roleKey = connected.role ?? getRoleForClient(connected.data.state?.players ?? []);
+      const role = roleKey === playerRoles.White ? Player.White : Player.Black;
+      const guestState = {
+        ...state,
+        matchType: MatchType.Online,
+        localPlayer: role,
+        isHost: connected.data.state?.hostId === clientId,
+        hostId: connected.data.state?.hostId ?? null,
+        players: connected.data.state?.players ?? [],
+      };
+      setState(guestState, { clearHistory: true });
+      applyRemoteState(connected.data.state);
+    }
+    if (connected) {
+      await subscribeToGame(code);
+      startPolling(code);
+    }
+    return;
+  }
+  updateUrlWithCode(null);
+  stopPolling();
+  setState(enterSetup(state), { clearHistory: true });
+}
 
 if (els.passBlackBtn) {
   els.passBlackBtn.addEventListener("click", () => handlePass(Player.Black));
 }
 if (els.passWhiteBtn) {
   els.passWhiteBtn.addEventListener("click", () => handlePass(Player.White));
+}
+if (els.leaveRoomBtn) {
+  els.leaveRoomBtn.addEventListener("click", () => {
+    void leaveRoom();
+  });
 }

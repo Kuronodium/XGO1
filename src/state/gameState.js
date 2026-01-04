@@ -28,6 +28,9 @@ export function createInitialState() {
     board: createBoard(boardSize, obstacles),
     currentPlayer: Player.Black,
     localPlayer: Player.Black,
+    hostId: null,
+    isHost: false,
+    players: [],
     captures: { black: 0, white: 0 },
     komi: 0,
     obstaclesEnabled,
@@ -38,6 +41,7 @@ export function createInitialState() {
     matchCode: [...DEFAULT_MATCH_CODE],
     consecutivePasses: 0,
     lastPassBy: null,
+    syncVersion: 0,
   };
 }
 
@@ -251,6 +255,10 @@ export function resetGame(state) {
     obstacles,
     board: createBoard(boardSize, obstacles),
     currentPlayer: Player.Black,
+    localPlayer: Player.Black,
+    hostId: null,
+    isHost: false,
+    players: [],
     captures: { black: 0, white: 0 },
     lastScore: null,
     consecutivePasses: 0,
