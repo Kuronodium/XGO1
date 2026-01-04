@@ -7,15 +7,23 @@ export function createCaptureTray(
 ) {
 
   function renderCount(el, count) {
-    if (el) el.textContent = String(count);
+    if (el) el.textContent = `x${count}`;
+  }
+
+  function resolveStonesEl(trayEl) {
+    if (!trayEl) return null;
+    return trayEl.querySelector(".capture-tray__stones") ?? trayEl;
   }
 
   function renderTray(trayEl, color, count) {
-    if (!trayEl) return;
-    trayEl.innerHTML = "";
+    const stonesEl = resolveStonesEl(trayEl);
+    if (!stonesEl) return;
+    stonesEl.innerHTML = "";
+    stonesEl.dataset.count = String(count);
     const displayCount = Math.min(count, maxStones);
-    for (let i = 0; i < displayCount; i++) {
-      trayEl.appendChild(createStone(color, stoneSize));
+    const stonesToRender = Math.max(displayCount, 1);
+    for (let i = 0; i < stonesToRender; i++) {
+      stonesEl.appendChild(createStone(color, stoneSize));
     }
   }
 

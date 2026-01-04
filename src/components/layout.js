@@ -6,17 +6,43 @@ ensureStyle(
   `
 .app-shell {
   --ui-panel-fixed-height: 0px;
+  --app-gap: clamp(8px, 2vh, 16px);
+  --app-pad-block: clamp(6px, 1.5vh, 12px);
+  --board-fit: min(640px, 55vh);
   max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 24px;
+  padding: var(--app-pad-block) 16px;
   display: grid;
-  gap: 40px;
+  gap: var(--app-gap);
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.room-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  min-height: 40px;
+}
+
+.room-logo {
+  grid-column: 2;
+  justify-self: center;
+  font-size: 12px;
+  letter-spacing: 0.32em;
+  font-weight: 700;
+  color: var(--color-text);
+  text-transform: uppercase;
 }
 
 .match-code-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  grid-column: 1;
+  justify-self: start;
   gap: 12px;
   padding: 2px 0;
   letter-spacing: 0.12em;
@@ -33,11 +59,17 @@ ensureStyle(
   gap: 8px;
 }
 
+.room-bar #leave-room {
+  grid-column: 3;
+  justify-self: end;
+}
+
 .main-grid {
   display: grid;
   grid-template-columns: 1fr minmax(320px, 640px) 1fr;
-  gap: 24px;
+  gap: clamp(8px, 2vh, 16px);
   align-items: center;
+  min-height: 0;
 }
 
 .side-panel {
@@ -48,7 +80,7 @@ ensureStyle(
   flex-wrap: nowrap;
   padding: 18px;
   border-radius: 20px;
-  min-height: 360px;
+  min-height: clamp(200px, 40vh, 340px);
   background: transparent;
   position: relative;
 }
@@ -208,6 +240,9 @@ body.turn-white #side-white .turn-indicator::after {
   border-radius: 22px;
   background: var(--color-board-cell);
   box-shadow: var(--shadow-board);
+  width: 100%;
+  max-width: var(--board-fit);
+  justify-self: center;
 }
 
 .board-host {
@@ -230,6 +265,25 @@ body.turn-white #side-white .turn-indicator::after {
   flex: 0 0 auto;
 }
 
+.capture-tray__stones {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--capture-gap);
+}
+
+.capture-tray__count {
+  display: none;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.capture-tray__stones[data-count="0"] .stone {
+  display: none;
+}
+
 .ui-panel {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -238,7 +292,7 @@ body.turn-white #side-white .turn-indicator::after {
   padding: 16px 24px;
   border-radius: 999px;
   background: var(--color-surface);
-  box-shadow: var(--shadow-elevated);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
 }
 
 .ui-panel__group {
@@ -680,6 +734,11 @@ button.ghost {
 }
 
 @media (max-width: 640px) {
+  .room-logo {
+    font-size: 11px;
+    letter-spacing: 0.28em;
+  }
+
   .match-code-bar {
     font-size: 10px;
   }
@@ -711,6 +770,12 @@ button.ghost {
   .turn-indicator {
     --ripple-scale: 1.4;
   }
+
+  .side-stack {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+  }
   .main-grid {
     grid-template-columns: 1fr;
   }
@@ -723,8 +788,9 @@ button.ghost {
   .side-panel {
     min-height: auto;
     width: 100%;
-    justify-content: space-between;
-    padding: 12px 8px;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px 8px;
   }
 
   .ui-panel {
@@ -769,9 +835,29 @@ button.ghost {
     min-height: var(--capture-slot);
     flex-direction: row;
     justify-content: center;
+    align-items: center;
+    gap: 8px;
     flex: 1 1 auto;
     min-width: 0;
     overflow-x: auto;
+  }
+
+  .capture-tray__stones {
+    flex-direction: row;
+  }
+
+  .capture-tray__stones .stone:not(:first-child) {
+    display: none;
+  }
+
+  .capture-tray__count {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .capture-tray__stones[data-count="0"] .stone:first-child {
+    display: block;
   }
 
   #side-white .big-stone {
@@ -793,7 +879,7 @@ button.ghost {
   }
 
   .app-shell {
-    padding: 24px 16px 144px;
+    padding: clamp(8px, 2vh, 16px) 12px clamp(72px, 14vh, 112px);
   }
 }
 `
@@ -803,19 +889,26 @@ export function createLayout() {
   const template = document.createElement("template");
   template.innerHTML = `
     <div class="app-shell">
-      <div class="match-code-bar is-hidden" id="match-code-bar">
-        <span class="match-code-label">Code</span>
-        <div class="match-code-stones" id="match-code-stones">
-          <span class="stone small" data-index="0"></span>
-          <span class="stone small" data-index="1"></span>
-          <span class="stone small" data-index="2"></span>
-          <span class="stone small" data-index="3"></span>
-          <span class="stone small" data-index="4"></span>
+      <div class="room-bar" id="room-bar">
+        <div class="match-code-bar is-hidden" id="match-code-bar">
+          <span class="match-code-label">Code</span>
+          <div class="match-code-stones" id="match-code-stones">
+            <span class="stone small" data-index="0"></span>
+            <span class="stone small" data-index="1"></span>
+            <span class="stone small" data-index="2"></span>
+            <span class="stone small" data-index="3"></span>
+            <span class="stone small" data-index="4"></span>
+          </div>
         </div>
+        <div class="room-logo">XGO</div>
+        <button class="panel-btn ghost is-hidden" id="leave-room">Leave</button>
       </div>
       <main class="main-grid">
         <aside class="side-panel" id="side-white">
-          <div class="capture-tray" id="capture-white-tray"></div>
+          <div class="capture-tray" id="capture-white-tray">
+            <div class="capture-tray__stones"></div>
+            <span class="capture-tray__count" id="capture-white-count">x0</span>
+          </div>
           <div class="side-stack">
             <div class="turn-indicator">
               <span class="you-tag">YOU</span>
@@ -839,7 +932,10 @@ export function createLayout() {
             </div>
             <button class="panel-btn pass-button" id="pass-black">PASS</button>
           </div>
-          <div class="capture-tray" id="capture-black-tray"></div>
+          <div class="capture-tray" id="capture-black-tray">
+            <div class="capture-tray__stones"></div>
+            <span class="capture-tray__count" id="capture-black-count">x0</span>
+          </div>
         </aside>
       </main>
 
@@ -860,9 +956,6 @@ export function createLayout() {
             <button class="panel-btn" id="back-to-play">Resume</button>
             <button class="panel-btn" id="score">Judge</button>
             <button class="panel-btn" data-reset>Reset</button>
-          </div>
-          <div class="panel-controls room-controls">
-            <button class="panel-btn ghost" id="leave-room">Leave</button>
           </div>
         </div>
       </footer>
@@ -961,6 +1054,8 @@ export function createLayout() {
     turnCount: root.querySelector("#turn-count"),
     captureBlackTray: root.querySelector("#capture-black-tray"),
     captureWhiteTray: root.querySelector("#capture-white-tray"),
+    captureBlackCount: root.querySelector("#capture-black-count"),
+    captureWhiteCount: root.querySelector("#capture-white-count"),
     obstacleSegment: root.querySelector("#obstacle-segment"),
     boardSizeSegment: root.querySelector("#size-segment"),
     startSetupBtn: root.querySelector("#start-setup"),
@@ -979,6 +1074,7 @@ export function createLayout() {
     matchCodeValue: root.querySelector("#match-code-value"),
     startMatchBtn: root.querySelector("#start-match"),
     matchModal: root.querySelector("#match-modal"),
+    roomBar: root.querySelector("#room-bar"),
     matchCodeBar: root.querySelector("#match-code-bar"),
     matchCodeStones: root.querySelector("#match-code-stones"),
     passBlackBtn: root.querySelector("#pass-black"),

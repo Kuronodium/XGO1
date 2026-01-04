@@ -5,9 +5,14 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
-  min-height: 100vh;
+  min-height: 100%;
   background: linear-gradient(135deg, var(--color-bg-deep), var(--color-bg));
   color: var(--color-text);
   font-family: "Space Grotesk", "Noto Sans JP", sans-serif;
@@ -76,22 +81,18 @@ body.turn-white::after {
 }
 
 #app-root {
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: stretch;
   position: relative;
   z-index: 1;
 }
 
 #app-root > .app-shell {
   width: min(1200px, 100%);
-}
-
-@media (min-height: 820px) {
-  #app-root {
-    align-items: center;
-  }
+  height: 100%;
 }
 
 @media (max-width: 640px) {

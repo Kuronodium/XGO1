@@ -152,11 +152,11 @@ function serializeState(source) {
   };
 }
 
-function applyRemoteState(remote) {
+function applyRemoteState(remote, { force = false } = {}) {
   if (!remote) return;
   const remoteVersion = typeof remote.syncVersion === "number" ? remote.syncVersion : null;
   const localVersion = typeof state.syncVersion === "number" ? state.syncVersion : null;
-  if (remoteVersion !== null && localVersion !== null && remoteVersion < localVersion) return;
+  if (!force && remoteVersion !== null && localVersion !== null && remoteVersion < localVersion) return;
   const resolvedHostId = remote.hostId ?? state.hostId ?? null;
   const next = {
     ...state,
@@ -478,6 +478,8 @@ const captureSides = createCaptureTray(
   {
     blackTrayEl: els.captureBlackTray,
     whiteTrayEl: els.captureWhiteTray,
+    blackCountEl: els.captureBlackCount,
+    whiteCountEl: els.captureWhiteCount,
   },
   { maxStones: 18, stoneSize: "small" }
 );
@@ -533,7 +535,7 @@ async function autoJoinFromUrl() {
       players: existing.data.state?.players ?? [],
     };
     setState(guestState, { clearHistory: true, skipSync: true, isRemote: true });
-    applyRemoteState(existing.data.state);
+    applyRemoteState(existing.data.state, { force: true });
   }
   await subscribeToGame(code);
   startPolling(code);
@@ -624,6 +626,8 @@ function render() {
   const players = Array.isArray(state.players) ? state.players : [];
   const opponentPresent = players.some((p) => p.id !== clientId);
   const showOffline = isOnline && (!activeGame.id || !opponentPresent);
+  const showCode = isOnline && Array.isArray(state.matchCode) && !!activeGame.id;
+  const canLeave = isOnline && !!activeGame.id;
   const canBlackPass = isPlay && state.currentPlayer === Player.Black && (!isOnline || local === Player.Black);
   const canWhitePass = isPlay && state.currentPlayer === Player.White && (!isOnline || local === Player.White);
   if (els.sideBlack) {
@@ -643,7 +647,6 @@ function render() {
     els.passWhiteBtn.classList.toggle("is-passed", state.lastPassBy === Player.White);
   }
   if (els.matchCodeBar) {
-    const showCode = isOnline && Array.isArray(state.matchCode) && !!activeGame.id;
     els.matchCodeBar.classList.toggle("is-hidden", !showCode);
     if (showCode && els.matchCodeStones) {
       const stones = Array.from(els.matchCodeStones.children);
@@ -655,7 +658,6 @@ function render() {
     }
   }
   if (els.leaveRoomBtn) {
-    const canLeave = isOnline && !!activeGame.id;
     els.leaveRoomBtn.disabled = !canLeave;
     els.leaveRoomBtn.classList.toggle("is-hidden", !canLeave);
   }
@@ -767,7 +769,7 @@ async function handleMatchStart() {
       writeStoredCode(code);
       updateUrlWithCode(null);
       setState(guestState, { clearHistory: true, skipSync: true, isRemote: true });
-      applyRemoteState(connected.data.state);
+      applyRemoteState(connected.data.state, { force: true });
     }
     if (connected) {
       await subscribeToGame(code);
