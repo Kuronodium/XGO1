@@ -3,11 +3,19 @@ import { BOARD_SIZE, CellState, Player, otherPlayer, isOnBoard } from "../domain
 import { cloneBoard, createBoard, placeStone, computeScore } from "../domain/board.js";
 
 export const GameMode = {
+  Match: "MATCH",
   Setup: "SETUP",
   Play: "PLAY",
   Organize: "ORGANIZE",
   Result: "RESULT",
 };
+
+export const MatchType = {
+  Offline: "offline",
+  Online: "online",
+};
+
+const DEFAULT_MATCH_CODE = [1, 0, 0, 1, 1];
 
 export function createInitialState() {
   const boardSize = BOARD_SIZE;
@@ -15,16 +23,21 @@ export function createInitialState() {
   const obstacleCount = 4;
   const obstacles = obstaclesEnabled ? randomObstacles(obstacleCount, boardSize) : [];
   return {
-    mode: GameMode.Setup,
+    mode: GameMode.Match,
     boardSize,
     board: createBoard(boardSize, obstacles),
     currentPlayer: Player.Black,
+    localPlayer: Player.Black,
     captures: { black: 0, white: 0 },
     komi: 0,
     obstaclesEnabled,
     obstacleCount,
     obstacles,
     lastScore: null,
+    matchType: MatchType.Offline,
+    matchCode: [...DEFAULT_MATCH_CODE],
+    consecutivePasses: 0,
+    lastPassBy: null,
   };
 }
 
@@ -59,6 +72,38 @@ export function updateObstacleConfig(state, { enabled, count }) {
     captures: { black: 0, white: 0 },
     currentPlayer: Player.Black,
     lastScore: null,
+    consecutivePasses: 0,
+    lastPassBy: null,
+  };
+}
+
+export function updateMatchType(state, nextType) {
+  if (nextType !== MatchType.Offline && nextType !== MatchType.Online) return state;
+  return { ...state, matchType: nextType };
+}
+
+export function toggleMatchCode(state, index) {
+  const nextIndex = Number(index);
+  if (!Number.isInteger(nextIndex)) return state;
+  const nextCode = [...(state.matchCode ?? DEFAULT_MATCH_CODE)];
+  if (nextIndex < 0 || nextIndex >= nextCode.length) return state;
+  nextCode[nextIndex] = nextCode[nextIndex] === 1 ? 0 : 1;
+  return { ...state, matchCode: nextCode };
+}
+
+export function enterSetup(state) {
+  const boardSize = state.boardSize ?? BOARD_SIZE;
+  const obstacles = state.obstaclesEnabled ? randomObstacles(state.obstacleCount, boardSize) : [];
+  return {
+    ...state,
+    mode: GameMode.Setup,
+    obstacles,
+    board: createBoard(boardSize, obstacles),
+    currentPlayer: Player.Black,
+    captures: { black: 0, white: 0 },
+    lastScore: null,
+    consecutivePasses: 0,
+    lastPassBy: null,
   };
 }
 
@@ -75,6 +120,8 @@ export function updateBoardSize(state, boardSize) {
     captures: { black: 0, white: 0 },
     currentPlayer: Player.Black,
     lastScore: null,
+    consecutivePasses: 0,
+    lastPassBy: null,
   };
 }
 
@@ -89,6 +136,8 @@ export function randomizeObstacles(state) {
     currentPlayer: Player.Black,
     captures: { black: 0, white: 0 },
     lastScore: null,
+    consecutivePasses: 0,
+    lastPassBy: null,
   };
 }
 
@@ -102,6 +151,8 @@ export function startGame(state) {
     currentPlayer: Player.Black,
     captures: { black: 0, white: 0 },
     lastScore: null,
+    consecutivePasses: 0,
+    lastPassBy: null,
   };
 }
 
@@ -120,8 +171,30 @@ export function playAt(state, point) {
     board: result.board,
     captures,
     currentPlayer: otherPlayer(state.currentPlayer),
+    consecutivePasses: 0,
+    lastPassBy: null,
   };
   return { next, ok: true };
+}
+
+export function passTurn(state) {
+  if (state.mode !== GameMode.Play) {
+    return { next: state, ok: false, reason: "not-in-play" };
+  }
+  const current = state.currentPlayer;
+  const previousPassBy = state.lastPassBy;
+  const nextConsecutive =
+    previousPassBy && previousPassBy !== current ? (state.consecutivePasses ?? 0) + 1 : 1;
+  const next = {
+    ...state,
+    currentPlayer: otherPlayer(current),
+    consecutivePasses: nextConsecutive,
+    lastPassBy: current,
+  };
+  if (nextConsecutive >= 2) {
+    return { next: { ...next, mode: GameMode.Organize }, ok: true, ended: true };
+  }
+  return { next, ok: true, ended: false };
 }
 
 export function enterOrganize(state) {
@@ -174,11 +247,13 @@ export function resetGame(state) {
   const obstacles = state.obstaclesEnabled ? randomObstacles(state.obstacleCount, boardSize) : [];
   return {
     ...state,
-    mode: GameMode.Setup,
+    mode: GameMode.Match,
     obstacles,
     board: createBoard(boardSize, obstacles),
     currentPlayer: Player.Black,
     captures: { black: 0, white: 0 },
     lastScore: null,
+    consecutivePasses: 0,
+    lastPassBy: null,
   };
 }

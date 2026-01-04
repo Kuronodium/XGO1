@@ -30,6 +30,14 @@ ensureStyle(
   border-radius: 20px;
   min-height: 360px;
   background: transparent;
+  position: relative;
+}
+
+.side-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .big-stone {
@@ -60,6 +68,40 @@ ensureStyle(
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.you-tag {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-primary-on-accent);
+  background: var(--color-primary-button-bg);
+  padding: 4px 10px;
+  border-radius: 999px;
+  box-shadow: var(--shadow-primary);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.side-panel.is-you .you-tag {
+  opacity: 1;
+}
+
+.pass-button {
+  min-width: 120px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.pass-button.is-passed {
+  background: var(--color-primary-button-bg);
+  color: var(--color-primary-button-text);
+  border-color: transparent;
+  box-shadow: var(--shadow-primary);
 }
 
 .turn-indicator::before {
@@ -214,7 +256,12 @@ body.turn-white #side-white .turn-indicator::after {
 
 .ui-panel[data-mode="organize"] .play-controls,
 .ui-panel[data-mode="result"] .play-controls,
-.ui-panel[data-mode="setup"] .play-controls {
+.ui-panel[data-mode="setup"] .play-controls,
+.ui-panel[data-mode="match"] .play-controls {
+  display: none;
+}
+
+.ui-panel[data-mode="match"] .organize-controls {
   display: none;
 }
 
@@ -323,6 +370,155 @@ button.ghost {
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+.match-panel {
+  width: min(560px, 100%);
+  padding: 36px 32px 30px;
+  border-radius: 24px;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.2)), var(--color-card);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.match-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.14), transparent 60%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.match-panel .match-title {
+  margin: 0;
+  font-size: 36px;
+  letter-spacing: 0.3em;
+}
+
+.match-panel .match-subtitle {
+  margin: 8px 0 18px;
+  color: var(--color-muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.match-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 auto 18px;
+  max-width: 320px;
+}
+
+.match-segmented button {
+  border-radius: 12px;
+  padding: 12px 0;
+  font-size: 18px;
+  background: var(--color-pill-dark-bg);
+  border: 1px solid var(--color-button-border);
+  color: var(--color-muted);
+  transition: transform 120ms ease, box-shadow 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.match-segmented button.is-active {
+  background: var(--color-primary-button-bg);
+  color: var(--color-primary-button-text);
+  border-color: transparent;
+  box-shadow: var(--shadow-primary);
+}
+
+.match-code {
+  display: grid;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.match-code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 360px;
+  margin: 0 auto;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.match-code-value {
+  color: var(--color-text);
+  letter-spacing: 0.3em;
+}
+
+.match-stones {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin: 0 auto;
+  background: var(--color-panel-shine);
+  border-radius: 18px;
+  max-width: 360px;
+  border: 1px solid var(--color-border);
+}
+
+.match-stones.is-disabled {
+  opacity: 0.35;
+  filter: grayscale(0.6);
+  pointer-events: none;
+}
+
+.stone-toggle {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border);
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.stone-toggle .stone {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  transition: transform 120ms ease, box-shadow 140ms ease;
+}
+
+.stone-toggle.is-white .stone {
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--color-stone-white-highlight),
+    var(--color-stone-white-base)
+  );
+  box-shadow: 0 8px 18px var(--color-stone-shadow-outer), inset 0 2px 6px var(--color-stone-shadow-inner);
+}
+
+.stone-toggle.is-black .stone {
+  background: radial-gradient(
+    circle at 35% 30%,
+    var(--color-stone-black-highlight),
+    var(--color-stone-black-base)
+  );
+  border: 1px solid var(--color-stone-black-outline-soft);
+  box-shadow: 0 8px 18px var(--color-stone-black-shadow), inset 0 2px 6px var(--color-stone-black-inner);
+}
+
+.match-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.match-actions .start-button {
+  min-width: 240px;
+  border-radius: 999px;
+  font-size: 18px;
+  padding: 14px 32px;
 }
 
 .score-row {
@@ -436,6 +632,30 @@ button.ghost {
 }
 
 @media (max-width: 640px) {
+  .match-panel {
+    padding: 28px 20px 24px;
+  }
+
+  .match-panel .match-title {
+    font-size: 30px;
+  }
+
+  .match-stones {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .stone-toggle {
+    width: 48px;
+    height: 48px;
+  }
+
+  .pass-button {
+    min-width: 96px;
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+
   .turn-indicator {
     --ripple-scale: 1.4;
   }
@@ -534,8 +754,12 @@ export function createLayout() {
       <main class="main-grid">
         <aside class="side-panel" id="side-white">
           <div class="capture-tray" id="capture-white-tray"></div>
-          <div class="turn-indicator">
-            <div class="big-stone"></div>
+          <div class="side-stack">
+            <div class="turn-indicator">
+              <span class="you-tag">YOU</span>
+              <div class="big-stone"></div>
+            </div>
+            <button class="panel-btn pass-button" id="pass-white">PASS</button>
           </div>
         </aside>
 
@@ -544,8 +768,12 @@ export function createLayout() {
         </section>
 
         <aside class="side-panel" id="side-black">
-          <div class="turn-indicator">
-            <div class="big-stone black"></div>
+          <div class="side-stack">
+            <div class="turn-indicator">
+              <span class="you-tag">YOU</span>
+              <div class="big-stone black"></div>
+            </div>
+            <button class="panel-btn pass-button" id="pass-black">PASS</button>
           </div>
           <div class="capture-tray" id="capture-black-tray"></div>
         </aside>
@@ -571,6 +799,33 @@ export function createLayout() {
           </div>
         </div>
       </footer>
+
+    <div class="modal" id="match-modal">
+      <div class="modal-panel match-panel">
+        <h2 class="match-title">XGO</h2>
+        <p class="match-subtitle">Match Type</p>
+        <div class="match-segmented" id="match-segment">
+          <button data-mode="offline">Offline</button>
+          <button data-mode="online">Online</button>
+        </div>
+        <div class="match-code">
+          <div class="match-code-header">
+            <span>Match Code</span>
+            <span class="match-code-value" id="match-code-value">00000</span>
+          </div>
+          <div class="match-stones" id="match-stones">
+            <button class="stone-toggle" data-index="0" aria-pressed="false"><span class="stone"></span></button>
+            <button class="stone-toggle" data-index="1" aria-pressed="false"><span class="stone"></span></button>
+            <button class="stone-toggle" data-index="2" aria-pressed="false"><span class="stone"></span></button>
+            <button class="stone-toggle" data-index="3" aria-pressed="false"><span class="stone"></span></button>
+            <button class="stone-toggle" data-index="4" aria-pressed="false"><span class="stone"></span></button>
+          </div>
+        </div>
+        <div class="match-actions">
+          <button class="primary start-button" id="start-match">Create Game</button>
+        </div>
+      </div>
+    </div>
 
     <div class="modal" id="setup-modal">
       <div class="modal-panel setup-panel">
@@ -652,6 +907,13 @@ export function createLayout() {
     scoreBlack: root.querySelector("#score-black"),
     scoreWhite: root.querySelector("#score-white"),
     winner: root.querySelector("#winner"),
+    matchSegment: root.querySelector("#match-segment"),
+    matchStones: root.querySelector("#match-stones"),
+    matchCodeValue: root.querySelector("#match-code-value"),
+    startMatchBtn: root.querySelector("#start-match"),
+    matchModal: root.querySelector("#match-modal"),
+    passBlackBtn: root.querySelector("#pass-black"),
+    passWhiteBtn: root.querySelector("#pass-white"),
     setupModal: root.querySelector("#setup-modal"),
     resultModal: root.querySelector("#result-modal"),
     closeResult: root.querySelector("#close-result"),
