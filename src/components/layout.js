@@ -13,6 +13,26 @@ ensureStyle(
   gap: 40px;
 }
 
+.match-code-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 2px 0;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.match-code-label {
+  text-transform: uppercase;
+}
+
+.match-code-stones {
+  display: inline-flex;
+  gap: 8px;
+}
+
 .main-grid {
   display: grid;
   grid-template-columns: 1fr minmax(320px, 640px) 1fr;
@@ -88,6 +108,30 @@ ensureStyle(
 }
 
 .side-panel.is-you .you-tag {
+  opacity: 1;
+}
+
+.offline-tag {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  border: 1px solid var(--color-button-border);
+  padding: 3px 10px;
+  border-radius: 999px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.side-panel.is-offline .you-tag {
+  opacity: 0;
+}
+
+.side-panel.is-offline .offline-tag {
   opacity: 1;
 }
 
@@ -636,6 +680,10 @@ button.ghost {
 }
 
 @media (max-width: 640px) {
+  .match-code-bar {
+    font-size: 10px;
+  }
+
   .match-panel {
     padding: 28px 20px 24px;
   }
@@ -755,12 +803,23 @@ export function createLayout() {
   const template = document.createElement("template");
   template.innerHTML = `
     <div class="app-shell">
+      <div class="match-code-bar is-hidden" id="match-code-bar">
+        <span class="match-code-label">Code</span>
+        <div class="match-code-stones" id="match-code-stones">
+          <span class="stone small" data-index="0"></span>
+          <span class="stone small" data-index="1"></span>
+          <span class="stone small" data-index="2"></span>
+          <span class="stone small" data-index="3"></span>
+          <span class="stone small" data-index="4"></span>
+        </div>
+      </div>
       <main class="main-grid">
         <aside class="side-panel" id="side-white">
           <div class="capture-tray" id="capture-white-tray"></div>
           <div class="side-stack">
             <div class="turn-indicator">
               <span class="you-tag">YOU</span>
+              <span class="offline-tag">offline</span>
               <div class="big-stone"></div>
             </div>
             <button class="panel-btn pass-button" id="pass-white">PASS</button>
@@ -775,6 +834,7 @@ export function createLayout() {
           <div class="side-stack">
             <div class="turn-indicator">
               <span class="you-tag">YOU</span>
+              <span class="offline-tag">offline</span>
               <div class="big-stone black"></div>
             </div>
             <button class="panel-btn pass-button" id="pass-black">PASS</button>
@@ -919,6 +979,8 @@ export function createLayout() {
     matchCodeValue: root.querySelector("#match-code-value"),
     startMatchBtn: root.querySelector("#start-match"),
     matchModal: root.querySelector("#match-modal"),
+    matchCodeBar: root.querySelector("#match-code-bar"),
+    matchCodeStones: root.querySelector("#match-code-stones"),
     passBlackBtn: root.querySelector("#pass-black"),
     passWhiteBtn: root.querySelector("#pass-white"),
     leaveRoomBtn: root.querySelector("#leave-room"),
