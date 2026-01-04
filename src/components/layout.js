@@ -92,6 +92,13 @@ ensureStyle(
   gap: 12px;
 }
 
+.side-tags {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
 .big-stone {
   width: 64px;
   height: 64px;
@@ -122,49 +129,42 @@ ensureStyle(
   justify-content: center;
 }
 
-.you-tag {
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  transform: translateX(-50%);
+.you-tag,
+.offline-tag {
+  display: none;
+  align-items: center;
+  justify-content: center;
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-primary-on-accent);
-  background: var(--color-primary-button-bg);
   padding: 4px 10px;
   border-radius: 999px;
-  box-shadow: var(--shadow-primary);
-  opacity: 0;
-  pointer-events: none;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-.side-panel.is-you .you-tag {
-  opacity: 1;
+.you-tag {
+  color: var(--color-primary-on-accent);
+  background: var(--color-primary-button-bg);
+  box-shadow: var(--shadow-primary);
 }
 
 .offline-tag {
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
   color: var(--color-muted);
   border: 1px solid var(--color-button-border);
-  padding: 3px 10px;
-  border-radius: 999px;
-  opacity: 0;
-  pointer-events: none;
+  background: transparent;
+}
+
+.side-panel.is-you .you-tag {
+  display: inline-flex;
 }
 
 .side-panel.is-offline .you-tag {
-  opacity: 0;
+  display: none;
 }
 
 .side-panel.is-offline .offline-tag {
-  opacity: 1;
+  display: inline-flex;
 }
 
 .pass-button {
@@ -214,6 +214,17 @@ body.turn-black #side-black .turn-indicator::after {
 
 body.turn-white #side-white .turn-indicator::before,
 body.turn-white #side-white .turn-indicator::after {
+  opacity: 1;
+  animation-name: turn-ripple;
+  animation-duration: 1.8s;
+  animation-timing-function: ease-out;
+  animation-iteration-count: infinite;
+}
+
+body.turn-both #side-black .turn-indicator::before,
+body.turn-both #side-black .turn-indicator::after,
+body.turn-both #side-white .turn-indicator::before,
+body.turn-both #side-white .turn-indicator::after {
   opacity: 1;
   animation-name: turn-ripple;
   animation-duration: 1.8s;
@@ -350,6 +361,39 @@ body.turn-white #side-white .turn-indicator::after {
 
 .ui-panel[data-mode="play"] .organize-controls {
   display: none;
+}
+
+.ui-panel[data-mode="organize"] {
+  grid-template-columns: 1fr;
+}
+
+.ui-panel[data-mode="organize"] .ui-panel__group--left,
+.ui-panel[data-mode="organize"] .ui-panel__center {
+  display: none;
+}
+
+.ui-panel[data-mode="organize"] .ui-panel__group--right {
+  justify-content: stretch;
+}
+
+.ui-panel[data-mode="organize"] .organize-controls {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.ui-panel[data-mode="organize"] .organize-controls > :nth-child(1) {
+  justify-self: start;
+}
+
+.ui-panel[data-mode="organize"] .organize-controls > :nth-child(2) {
+  justify-self: center;
+}
+
+.ui-panel[data-mode="organize"] .organize-controls > :nth-child(3) {
+  justify-self: end;
 }
 
 .ui-panel[data-mode="organize"] .play-controls,
@@ -776,6 +820,11 @@ button.ghost {
     align-items: center;
     gap: 10px;
   }
+
+  .side-tags {
+    flex-direction: row;
+    gap: 8px;
+  }
   .main-grid {
     grid-template-columns: 1fr;
   }
@@ -806,6 +855,11 @@ button.ghost {
     z-index: 20;
   }
 
+  .ui-panel[data-mode="organize"] {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   .ui-panel__group {
     justify-content: center;
     gap: 8px;
@@ -827,6 +881,10 @@ button.ghost {
 
   .panel-btn.icon-btn {
     min-width: 64px;
+  }
+
+  .ui-panel[data-mode="organize"] .organize-controls {
+    gap: 8px;
   }
 
   .capture-tray {
@@ -911,9 +969,11 @@ export function createLayout() {
           </div>
           <div class="side-stack">
             <div class="turn-indicator">
+              <div class="big-stone"></div>
+            </div>
+            <div class="side-tags">
               <span class="you-tag">YOU</span>
               <span class="offline-tag">offline</span>
-              <div class="big-stone"></div>
             </div>
             <button class="panel-btn pass-button" id="pass-white">PASS</button>
           </div>
@@ -926,9 +986,11 @@ export function createLayout() {
         <aside class="side-panel" id="side-black">
           <div class="side-stack">
             <div class="turn-indicator">
+              <div class="big-stone black"></div>
+            </div>
+            <div class="side-tags">
               <span class="you-tag">YOU</span>
               <span class="offline-tag">offline</span>
-              <div class="big-stone black"></div>
             </div>
             <button class="panel-btn pass-button" id="pass-black">PASS</button>
           </div>

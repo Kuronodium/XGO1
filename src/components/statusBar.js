@@ -1,5 +1,6 @@
 // 手番表示とターン強調の状態切り替えを担うステータスバー
 import { Player, CellState } from "../domain/types.js";
+import { GameMode } from "../state/gameState.js";
 
 function countStones(board) {
   let total = 0;
@@ -18,11 +19,13 @@ export function createStatusBar({
   function render(state) {
     const isBlackTurn = state.currentPlayer === Player.Black;
     const turnCount = countStones(state.board) + 1;
+    const isOrganize = state.mode === GameMode.Organize;
 
     if (turnCountEl) turnCountEl.textContent = String(turnCount);
     if (rootEl) {
-      rootEl.classList.toggle("turn-black", isBlackTurn);
-      rootEl.classList.toggle("turn-white", !isBlackTurn);
+      rootEl.classList.toggle("turn-both", isOrganize);
+      rootEl.classList.toggle("turn-black", !isOrganize && isBlackTurn);
+      rootEl.classList.toggle("turn-white", !isOrganize && !isBlackTurn);
     }
   }
 

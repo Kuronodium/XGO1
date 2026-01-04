@@ -80,6 +80,13 @@ body.turn-white::after {
   animation: var(--turn-in) 740ms ease-in-out both;
 }
 
+body.turn-both::before,
+body.turn-both::after {
+  opacity: 1;
+  transition-delay: 0ms;
+  animation: var(--turn-in) 740ms ease-in-out both;
+}
+
 #app-root {
   height: 100%;
   min-height: 0;
