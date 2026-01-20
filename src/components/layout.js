@@ -194,11 +194,19 @@ ensureStyle(
   text-transform: uppercase;
 }
 
+.pass-button:disabled {
+  pointer-events: none;
+}
+
 .pass-button.is-passed {
   background: var(--color-primary-button-bg);
   color: var(--color-primary-button-text);
-  border-color: transparent;
-  box-shadow: var(--shadow-primary);
+  border-color: var(--color-button-border-strong);
+  box-shadow: 0 0 0 1px var(--color-button-border-strong), var(--shadow-primary);
+}
+
+.pass-button.is-passed:disabled {
+  opacity: 1;
 }
 
 .turn-indicator::before {
