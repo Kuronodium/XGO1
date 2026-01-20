@@ -17,7 +17,6 @@ import {
   enterSetup,
   MatchType,
   updateMatchType,
-  toggleMatchCode,
   updateBoardSize,
   updateObstacleConfig,
   passTurn,
@@ -87,6 +86,7 @@ function normalizePlayers(players) {
 let state = createInitialState();
 let resultClosed = false;
 const history = { past: [], future: [] };
+let draftMatchCode = [...(state.matchCode ?? [])];
 
 applyPalette();
 
@@ -125,6 +125,7 @@ if (joinCode) {
     matchCode: joinCode,
   };
 }
+draftMatchCode = [...(state.matchCode ?? [])];
 
 function serializeState(source) {
   return {
@@ -437,7 +438,11 @@ const matchPanel = createMatchPanel(
     onModeChange: (mode) => setState(updateMatchType(state, mode)),
     onToggleStone: (index) => {
       if (state.matchType !== MatchType.Online) return;
-      setState(toggleMatchCode(state, index));
+      const nextCode = [...(draftMatchCode ?? state.matchCode ?? [])];
+      if (index < 0 || index >= nextCode.length) return;
+      nextCode[index] = nextCode[index] === 1 ? 0 : 1;
+      draftMatchCode = nextCode;
+      render();
     },
     onStart: () => {
       void handleMatchStart();
@@ -596,6 +601,9 @@ function setState(
       : currentVersion
     : currentVersion + 1;
   state = { ...next, syncVersion: nextVersion };
+  if (prevMode !== state.mode && state.mode === GameMode.Match) {
+    draftMatchCode = [...(state.matchCode ?? draftMatchCode)];
+  }
   if (state.mode !== GameMode.Organize) {
     boardView.clearSelection();
   }
@@ -612,7 +620,7 @@ function setState(
 function render() {
   boardView.render(state.board, state.mode, state.currentPlayer);
   statusBar.render(state);
-  matchPanel.render(state);
+  matchPanel.render(state, { code: draftMatchCode });
   setupPanel.render(state);
   playPanel.render(state, {
     canUndo: history.past.length > 0,
@@ -730,16 +738,18 @@ void autoJoinFromUrl();
 
 async function handleMatchStart() {
   if (state.matchType === MatchType.Online) {
-    const code = (state.matchCode ?? []).join("");
+    const codeBits = draftMatchCode ?? state.matchCode ?? [];
+    const code = codeBits.join("");
     const hostState = enterSetup({
       ...state,
       matchType: MatchType.Online,
+      matchCode: codeBits,
       localPlayer: Player.Black,
       isHost: true,
       hostId: clientId,
       players: [makePlayer(playerRoles.Black)],
     });
-    const connected = await createOrJoinGame(state.matchCode ?? [], hostState);
+    const connected = await createOrJoinGame(codeBits, hostState);
     if (!connected) {
       updateUrlWithCode(null);
       writeStoredCode(null);
@@ -761,6 +771,7 @@ async function handleMatchStart() {
       const guestState = {
         ...state,
         matchType: MatchType.Online,
+        matchCode: codeBits,
         localPlayer: role,
         isHost: connected.data.state?.hostId === clientId,
         hostId: connected.data.state?.hostId ?? null,

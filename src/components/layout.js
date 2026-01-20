@@ -7,7 +7,7 @@ ensureStyle(
 .app-shell {
   --ui-panel-fixed-height: 0px;
   --app-gap: clamp(8px, 2vh, 16px);
-  --app-pad-block: clamp(6px, 1.5vh, 12px);
+  --app-pad-block: clamp(8px, 1.5vh, 16px);
   --board-fit: min(640px, 55vh);
   max-width: 1200px;
   margin: 0 auto;
@@ -43,8 +43,8 @@ ensureStyle(
   justify-content: flex-start;
   grid-column: 1;
   justify-self: start;
-  gap: 12px;
-  padding: 2px 0;
+  gap: 8px;
+  padding: 4px 0;
   letter-spacing: 0.12em;
   font-size: 11px;
   color: var(--color-muted);
@@ -73,35 +73,57 @@ ensureStyle(
 }
 
 .side-panel {
+  --big-stone-size: 64px;
+  --ripple-scale: 2;
+  --ripple-gap: calc((var(--big-stone-size) * (var(--ripple-scale) - 1)) / 2 + 8px);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 24px;
   flex-wrap: nowrap;
-  padding: 18px;
+  padding: 16px;
   border-radius: 20px;
   min-height: clamp(200px, 40vh, 340px);
   background: transparent;
   position: relative;
+  align-self: stretch;
 }
 
 .side-stack {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-rows: 1fr auto 1fr;
   align-items: center;
-  gap: 12px;
+  justify-items: center;
+  row-gap: var(--ripple-gap);
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
 }
 
 .side-tags {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+}
+
+.side-stack > .side-tags {
+  grid-row: 1;
+  align-self: end;
+}
+
+.side-stack > .turn-indicator {
+  grid-row: 2;
+}
+
+.side-stack > .pass-button {
+  grid-row: 3;
+  align-self: start;
 }
 
 .big-stone {
-  width: 64px;
-  height: 64px;
+  width: var(--big-stone-size);
+  height: var(--big-stone-size);
   border-radius: 50%;
   background: radial-gradient(
     circle at 35% 30%,
@@ -122,7 +144,6 @@ ensureStyle(
 }
 
 .turn-indicator {
-  --ripple-scale: 2;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -137,7 +158,7 @@ ensureStyle(
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 999px;
   line-height: 1;
   white-space: nowrap;
@@ -309,7 +330,7 @@ body.turn-both #side-white .turn-indicator::after {
 .ui-panel__group {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .ui-panel__group--left {
@@ -323,7 +344,7 @@ body.turn-both #side-white .turn-indicator::after {
 .ui-panel__center {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: 8px;
   color: var(--color-text);
   letter-spacing: 0.18em;
   font-size: 16px;
@@ -356,7 +377,7 @@ body.turn-both #side-white .turn-indicator::after {
 .panel-controls {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .ui-panel[data-mode="play"] .organize-controls {
@@ -381,7 +402,7 @@ body.turn-both #side-white .turn-indicator::after {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .ui-panel[data-mode="organize"] .organize-controls > :nth-child(1) {
@@ -412,7 +433,7 @@ body.turn-both #side-white .turn-indicator::after {
   color: var(--color-text);
   border: 1px solid var(--color-button-border);
   border-radius: 999px;
-  padding: 10px 20px;
+  padding: 8px 16px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 140ms ease, background 140ms ease;
@@ -431,7 +452,7 @@ body.turn-both #side-white .turn-indicator::after {
 
 .panel-btn.icon-btn {
   min-width: 72px;
-  padding: 10px 0;
+  padding: 8px 0;
 }
 
 .is-hidden {
@@ -442,7 +463,7 @@ body.turn-both #side-white .turn-indicator::after {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 button {
@@ -450,7 +471,7 @@ button {
   color: var(--color-text);
   border: 1px solid var(--color-button-border);
   border-radius: 12px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   font-weight: 600;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 140ms ease, background 140ms ease;
@@ -508,19 +529,19 @@ button.ghost {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .modal-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .match-panel {
   width: min(560px, 100%);
-  padding: 36px 32px 30px;
+  padding: 32px 32px 24px;
   border-radius: 24px;
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.2)), var(--color-card);
   text-align: center;
@@ -544,7 +565,7 @@ button.ghost {
 }
 
 .match-panel .match-subtitle {
-  margin: 8px 0 18px;
+  margin: 8px 0 16px;
   color: var(--color-muted);
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -554,14 +575,14 @@ button.ghost {
 .match-segmented {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin: 0 auto 18px;
+  gap: 8px;
+  margin: 0 auto 16px;
   max-width: 320px;
 }
 
 .match-segmented button {
   border-radius: 12px;
-  padding: 12px 0;
+  padding: 16px 0;
   font-size: 18px;
   background: var(--color-pill-dark-bg);
   border: 1px solid var(--color-button-border);
@@ -578,7 +599,7 @@ button.ghost {
 
 .match-code {
   display: grid;
-  gap: 12px;
+  gap: 8px;
   margin-top: 8px;
 }
 
@@ -602,8 +623,8 @@ button.ghost {
 .match-stones {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  padding: 14px 18px;
+  gap: 8px;
+  padding: 16px 16px;
   margin: 0 auto;
   background: var(--color-panel-shine);
   border-radius: 18px;
@@ -664,7 +685,7 @@ button.ghost {
   min-width: 240px;
   border-radius: 999px;
   font-size: 18px;
-  padding: 14px 32px;
+  padding: 16px 32px;
 }
 
 .score-row {
@@ -684,7 +705,7 @@ button.ghost {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 10px;
   background: var(--color-panel-shine);
 }
@@ -723,7 +744,7 @@ button.ghost {
 
 .segmented button {
   border-radius: 12px;
-  padding: 12px 0;
+  padding: 16px 0;
   font-size: 18px;
 }
 
@@ -739,11 +760,11 @@ button.ghost {
 }
 
 .setup-section {
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .setup-label {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   font-size: 12px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
@@ -762,7 +783,7 @@ button.ghost {
 
 .setup-panel .start-button {
   font-size: 18px;
-  padding: 14px 32px;
+  padding: 16px 32px;
   min-width: 220px;
   border-radius: 999px;
 }
@@ -788,7 +809,7 @@ button.ghost {
   }
 
   .match-panel {
-    padding: 28px 20px 24px;
+    padding: 24px 16px 24px;
   }
 
   .match-panel .match-title {
@@ -796,8 +817,8 @@ button.ghost {
   }
 
   .match-stones {
-    gap: 10px;
-    padding: 12px;
+    gap: 8px;
+    padding: 8px;
   }
 
   .stone-toggle {
@@ -807,46 +828,42 @@ button.ghost {
 
   .pass-button {
     min-width: 96px;
-    padding: 8px 14px;
+    padding: 8px 16px;
     font-size: 12px;
   }
 
-  .turn-indicator {
-    --ripple-scale: 1.4;
-  }
-
   .side-stack {
-    flex-direction: row;
-    align-items: center;
-    gap: 10px;
+    display: contents;
   }
 
   .side-tags {
-    flex-direction: row;
-    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
   }
   .main-grid {
     grid-template-columns: 1fr;
   }
 
-  .big-stone {
-    width: 14vw;
-    height: 14vw;
-  }
-
   .side-panel {
+    --big-stone-size: clamp(0px, 14vw, 104px);
+    --ripple-scale: 1.4;
     min-height: auto;
     width: 100%;
-    justify-content: center;
-    gap: 12px;
-    padding: 10px 8px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    column-gap: 8px;
+    row-gap: 4px;
+    padding: 8px 16px;
   }
 
   .ui-panel {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
     border-radius: 24px;
     position: fixed;
     bottom: 16px;
@@ -875,7 +892,7 @@ button.ghost {
   }
 
   .panel-btn {
-    padding: 8px 14px;
+    padding: 8px 16px;
     font-size: 16px;
   }
 
@@ -888,11 +905,11 @@ button.ghost {
   }
 
   .capture-tray {
-    --capture-gap: 6px;
+    --capture-gap: 4px;
     width: auto;
     min-height: var(--capture-slot);
     flex-direction: row;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     gap: 8px;
     flex: 1 1 auto;
@@ -918,26 +935,32 @@ button.ghost {
     display: block;
   }
 
-  #side-white .big-stone {
-    order: 1;
+  .side-panel .turn-indicator {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    justify-self: start;
   }
 
-  #side-white .capture-tray {
-    order: 2;
-    justify-content: start;
+  .side-panel .side-tags {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
   }
 
-  #side-black .capture-tray {
-    order: 1;
-    justify-content: end;
+  .side-panel .capture-tray {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: start;
   }
 
-  #side-black .big-stone {
-    order: 2;
+  .side-panel .pass-button {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    justify-self: end;
   }
 
   .app-shell {
-    padding: clamp(8px, 2vh, 16px) 12px clamp(72px, 14vh, 112px);
+    padding: clamp(8px, 2vh, 16px) 16px clamp(72px, 14vh, 112px);
   }
 }
 `

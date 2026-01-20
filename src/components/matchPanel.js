@@ -29,9 +29,10 @@ export function createMatchPanel(
     startButton.addEventListener("click", () => onStart?.());
   }
 
-  function render(state) {
+  function render(state, { code } = {}) {
     const isMatch = state.mode === GameMode.Match;
     const isOnline = state.matchType === MatchType.Online;
+    const activeCode = code ?? state.matchCode ?? [];
 
     if (segmentEl) {
       segmentEl.querySelectorAll("button").forEach((btn) => {
@@ -42,7 +43,7 @@ export function createMatchPanel(
     if (stonesEl) {
       stonesEl.classList.toggle("is-disabled", !isOnline);
       stonesEl.querySelectorAll("button").forEach((btn, index) => {
-        const bit = state.matchCode?.[index] ?? 0;
+        const bit = activeCode[index] ?? 0;
         btn.classList.toggle("is-white", bit === 1);
         btn.classList.toggle("is-black", bit !== 1);
         btn.setAttribute("aria-pressed", bit === 1 ? "true" : "false");
@@ -50,7 +51,7 @@ export function createMatchPanel(
     }
 
     if (codeEl) {
-      codeEl.textContent = (state.matchCode ?? []).join("");
+      codeEl.textContent = activeCode.join("");
     }
 
     if (startButton) {
